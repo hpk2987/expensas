@@ -13,31 +13,49 @@ var RPCHandler = function(){
 	this.exp = new expensas.Expensas(file);
 	
 	this['/getCuentas'] = function(req,resp,query){
-		this.exp.getCuentas(function(docs){
+		this.exp.getCuentas(function(err,docs){
+			console.log("get: "+JSON.stringify(docs));
 			resp.writeHead(200, { 'Content-Type': 'application/json' });
 			resp.end(JSON.stringify(docs),'utf-8');
 		});
 	}
 	this['/addCuenta'] = function(req,resp,query){
-		this.exp.agregarCuenta(query.nombre);
-		resp.writeHead(200, { 'Content-Type': 'application/json' });
-		resp.end();
+		this.exp.agregarCuenta(query.nombre,function(err,newDocs){
+			console.log("added: "+JSON.stringify(newDocs));
+			resp.writeHead(200, { 'Content-Type': 'application/json' });
+			resp.end(JSON.stringify(newDocs),'utf-8');
+		});
+	}
+	this['/removeCuenta'] = function(req,resp,query){
+		this.exp.eliminarCuenta(query.id,function(){
+			resp.writeHead(200, { 'Content-Type': 'application/json' });
+			resp.end();
+		});
+	}
+	this['/getEntradas'] = function(req,resp,query){
+		this.exp.getEntradas(query.idCuenta,function(docs){
+			resp.writeHead(200, { 'Content-Type': 'application/json' });
+			resp.end(JSON.stringify(docs),"utf-8");	
+		});
 	}
 	this['/addEntrada'] = function(req,resp,query){
-		var expin=this.exp;
-		this.exp.getCuenta(query.nombre,function(doc){
-			var entrada = {descripcion:query.desc,monto:parseInt(query.monto)};
-			expin.agregarEntrada(doc[0],entrada,function(){
-				resp.writeHead(200, { 'Content-Type': 'application/json' });
-				resp.end();	
-			});
+		this.exp.agregarEntrada(
+			query.idCuenta,query.desc,query.monto,entrada,function(err,newDocs){
+			console.log("added: "+JSON.stringify(newDocs));
+			resp.writeHead(200, { 'Content-Type': 'application/json' });
+			resp.end(JSON.stringify(newDocs));	
+		});
+	}
+	this['/removeEntrada'] = function(req,resp,query){
+		this.exp.eliminarEntrada(query.id,function(){
+			resp.writeHead(200, { 'Content-Type': 'application/json' });
+			resp.end();
 		});
 	}
 }
 
 RPCHandler.prototype.handle = function(request,response){
 	var parts = url.parse(request.url, true,true);
-	console.log("RPCHandler URL: "+ JSON.stringify(parts));
 	if(this[parts.pathname]){
 		this[parts.pathname](request,response,parts.query);
 		return true;
