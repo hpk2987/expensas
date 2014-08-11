@@ -12,12 +12,12 @@ exports.Expensas = Expensas;
 
 Expensas.prototype.agregarCuenta = function(nombre){
 	console.log("Agregando cuenta nombre:"+nombre);
-	this.db.insert({nombre:nombre});
+	this.db.insert({nombre:nombre,entradas:[]});
 }
 
-Expensas.prototype.actualizarCuenta = function(cuenta){
-	console.log("Actualizando cuenta nombre:"+cuenta.nombre);
-	this.db.update({nombre:cuenta.nombre},cuenta);
+Expensas.prototype.agregarEntrada = function(cuenta,entrada,callback){
+	console.log("Agregando entrada:"+JSON.stringify(entrada)+" a cuenta:"+ cuenta.nombre);
+	this.db.update({ nombre:cuenta.nombre},{ $push: { entradas: entrada } },callback);
 }
 
 Expensas.prototype.eliminarCuenta = function(nombre){

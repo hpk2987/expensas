@@ -21,22 +21,23 @@ var RPCHandler = function(){
 	this['/addCuenta'] = function(req,resp,query){
 		this.exp.agregarCuenta(query.nombre);
 		resp.writeHead(200, { 'Content-Type': 'application/json' });
-		resp.end();		
+		resp.end();
 	}
 	this['/addEntrada'] = function(req,resp,query){
 		var expin=this.exp;
 		this.exp.getCuenta(query.nombre,function(doc){
-			doc[0].push({descripcion:query.desc,monto:})
-			expin.actualizarCuenta(doc[0]);
+			var entrada = {descripcion:query.desc,monto:parseInt(query.monto)};
+			expin.agregarEntrada(doc[0],entrada,function(){
+				resp.writeHead(200, { 'Content-Type': 'application/json' });
+				resp.end();	
+			});
 		});
-		resp.writeHead(200, { 'Content-Type': 'application/json' });
-		resp.end();		
 	}
 }
 
 RPCHandler.prototype.handle = function(request,response){
 	var parts = url.parse(request.url, true,true);
-	
+	console.log("RPCHandler URL: "+ JSON.stringify(parts));
 	if(this[parts.pathname]){
 		this[parts.pathname](request,response,parts.query);
 		return true;
