@@ -32,15 +32,16 @@ var RPCHandler = function(){
 			resp.end();
 		});
 	}
-	this['/getEntradas'] = function(req,resp,query){
+	this['/getEntradas'] = function(req,resp,query){		
 		this.exp.getEntradas(query.idCuenta,function(docs){
+			console.log("get: "+JSON.stringify(docs));
 			resp.writeHead(200, { 'Content-Type': 'application/json' });
 			resp.end(JSON.stringify(docs),"utf-8");	
 		});
 	}
 	this['/addEntrada'] = function(req,resp,query){
 		this.exp.agregarEntrada(
-			query.idCuenta,query.desc,query.monto,entrada,function(err,newDocs){
+			query.idCuenta,query.desc,query.monto,function(err,newDocs){
 			console.log("added: "+JSON.stringify(newDocs));
 			resp.writeHead(200, { 'Content-Type': 'application/json' });
 			resp.end(JSON.stringify(newDocs));	

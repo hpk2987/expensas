@@ -1,5 +1,6 @@
 var fs = require("fs");
 var Datastore = require('nedb');
+var moment = require('moment');
 
 var Expensas = function(dbname){
 	this.file = dbname;
@@ -19,7 +20,12 @@ Expensas.prototype.agregarCuenta = function(nombre,callback){
 }
 
 Expensas.prototype.agregarEntrada = function(idCuenta,descripcion,monto,callback){
-	var entrada = { cuenta:idCuenta, descripcion:descripcion, monto:parseInt(monto) };
+	var entrada = { 
+		cuenta:idCuenta, 
+		descripcion:descripcion,
+		monto:parseInt(monto),
+		fecha:moment().format('DD/MM/YYYY'),
+		secs:new Date().getTime()};
 	console.log("Agregando entrada:"+JSON.stringify(entrada));
 	this.db.entradas.insert(entrada,callback);
 }
@@ -39,7 +45,8 @@ Expensas.prototype.getCuentas = function(callback){
 }
 
 Expensas.prototype.getEntradas = function(idCuenta,callback){
-	this.db.entradas.find({ cuenta:idCuenta }, function (err, docs) {
+	this.db.entradas.find({ cuenta:idCuenta })
+					.sort({ secs:1 }).exec(function (err, docs) {
 		callback(docs);
 	});
 }

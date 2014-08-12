@@ -15,18 +15,43 @@ $(function() {
 });
 
 function addCuentaDiv(cuenta){
-	$("#cuentas").append(
-		"<div id=\"cuenta_"+cuenta._id+"\">"+
-		cuenta.nombre+
-		"<form id=\"cuenta_delete"+cuenta._id+"\" onSubmit=\"return confirm('Eliminar cuenta?')\">"+
-		"<input type=\"hidden\" name=\"id\" value=\""+cuenta._id+"\">"+
-		"<input type=\"submit\" value=\"Borrar\"></form></div>");
+	$.get( "/getEntradas?idCuenta="+cuenta._id, function( data ) {
+		cuenta.entradas = data;
+		cuenta.getTotal = function(){
+			var total = 0;
+			for(var c=0; c<cuenta.entradas.length; c++){
+				total += parseInt(cuenta.entradas[c].monto);
+			}
+			return total;
+		};
 
-	$("#cuenta_delete"+cuenta._id).ajaxForm({
-		url: '/removeCuenta',
-		dataType: 'html',
-		success: function(data,status,xhr,form){
-			$("#cuenta_"+cuenta._id).remove();
-		}
+		var template = $("#cuenta_template").html();			
+	  	var result = Mustache.render(template,cuenta);
+
+		$("#cuentas").append(result);
+
+		$("#cuenta_delete"+cuenta._id).ajaxForm({
+			url: '/removeCuenta',
+			dataType: 'html',
+			success: function(data,status,xhr,form){
+				$("#cuenta_"+cuenta._id).remove();
+			}
+		});
+
+		$("#cuenta_newEntry"+cuenta._id).ajaxForm({
+			url: '/addEntrada',
+			dataType: 'json',
+			success: function(data,status,xhr,form){
+				appendRowToTable(data);
+			}
+		});
 	});
+}
+
+function appendRowToTable(entrada){
+	var template = $("#entrada_row_template").html();
+  	var result = Mustache.render(template,entrada);
+
+	$("#cuenta_entradas_"+entrada.cuenta+">tbody:last")
+		.append(result);
 }
