@@ -2,16 +2,25 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-        
-        <script src="/site/js/jquery-2.1.1.js" type="text/javascript"></script>
-        <script src="/site/js/jquery.form.js" type="text/javascript"></script>
-        <script src="/site/js/mustache.js" type="text/javascript"></script>
-        <script src="/site/js/client.js" type="text/javascript"></script>
+        <title>Expensas</title>
+
+		<link rel="stylesheet" href="/site/css/base.css">
+        <link rel="stylesheet" href="/site/css/skeleton.css">
+        <link rel="stylesheet" href="/site/css/layout.css">
+
+        <link rel="stylesheet" href="/site/css/custom.css">
+
+        <link rel="stylesheet" href="/site/css/bootstrap-glyphs.css">
+		
+		<script src="/site/js/jquery-2.1.1.js" type="text/javascript"></script>
+		<script src="/site/js/jquery.form.js" type="text/javascript"></script>
+		<script src="/site/js/mustache.js" type="text/javascript"></script>
+		<script src="/site/js/client.js" type="text/javascript"></script>
 	</head>
 	<body>
 		<script type="text/x-mustache" id="cuenta_template">
     		<div id='cuenta_{{_id}}'>
-    			{{nombre}}
+    			<span>{{nombre}}</span>
     			<table id='cuenta_entradas_{{_id}}'>
     				<thead>
     					<th>Descripción</th>
@@ -19,13 +28,19 @@
     				</thead>
     				<tbody>
     					{{#entradas}}
-						<tr>
+						<tr id='entrada_row_{{_id}}'>
 							<td>{{fecha}}</td>
 							<td>{{descripcion}}</td>
 							<td>{{monto}}</td>
+							<td>
+								<form id='entrada_delete{{_id}}'>
+									<input type='hidden' name='id' value='{{_id}}'/>
+									<input type='submit' value='Borrar'/>
+								</form>
+							</td>
 						</tr>
     					{{/entradas}}    					
-    				<tbody>
+    				</tbody>
     				<tfoot>
     					<tr>
 							<td>Total</td>
@@ -33,34 +48,45 @@
 						</tr>
     				</tfoot>
     			</table>
+
     			<form id='cuenta_newEntry{{_id}}'>
 					<fieldset>
 						<legend>Nueva entrada</legend>
-						<input type='hidden' name='idCuenta' value='{{_id}}'>
-						<label>Descripción</label><input type='text' name='desc' value=''>
-						<label>Monto</label><input type='text' name='monto' value=''>
+						<input type='hidden' name='idCuenta' value='{{_id}}'/>
+						<label>Descripción</label><input type='text' name='desc' value=''/>
+						<label>Monto</label><input type='text' name='monto' value=''/>
 					</fieldset>
 					<input type='submit' value='Agregar'>
 				</form>
 	    		<form id='cuenta_delete{{_id}}' 
 	    			  onSubmit='return confirm('Eliminar cuenta?')'>
-					<input type='hidden' name='id' value='{{_id}}'>
-					<input type='submit' value='Borrar'>
+					<input type='hidden' name='id' value='{{_id}}'/>
+					<input type='submit' value='Borrar'/>
 				</form>
 			</div>
   		</script>
   		<script type="text/x-mustache" id="entrada_row_template">
-			<tr>
+			<tr id='entrada_row_{{_id}}'>
 				<td>{{fecha}}</td>
 				<td>{{descripcion}}</td>
 				<td>{{monto}}</td>
+				<td>
+					<form id='entrada_delete{{_id}}'>
+						<input type='hidden' name='id' value='{{_id}}'/>
+						<input type='submit' value='Borrar'/>
+					<form>
+				</td>
 			</tr>
 		</script>
 
-		<form id="addCuenta">
-			<input type="text" name="nombre"/>
-			<input type="submit" value="agregar"/>
-		</form>
-		<div id="cuentas"></div>
+		<div class="container">
+					<form id="addCuenta">					
+						<label>Nueva cuenta</label><input type="text" name="nombre"/>
+						<button class="glyphicon glyphicon-plus" type="submit">
+						</button>				
+					</form>
+			<h4>Cuentas</h4>
+			<div id="cuentas"></div>
+		</div>
 	</body>
 </html>

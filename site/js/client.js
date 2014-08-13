@@ -8,8 +8,8 @@ $(function() {
 	$("#addCuenta").ajaxForm({
 		url: '/addCuenta', 
 		dataType: 'json',
-		success: function(data,status,xhr,form) { 
-			addCuentaDiv(data);   			
+		success: function(data,status,xhr,form) {
+			addCuentaDiv(data);
     	}
 	});
 });
@@ -45,6 +45,10 @@ function addCuentaDiv(cuenta){
 				appendRowToTable(data);
 			}
 		});
+
+		cuenta.entradas.forEach(function(entrada){
+			ajaxFormOnEntrada(entrada);
+		});
 	});
 }
 
@@ -54,4 +58,20 @@ function appendRowToTable(entrada){
 
 	$("#cuenta_entradas_"+entrada.cuenta+">tbody:last")
 		.append(result);
+
+	ajaxFormOnEntrada(entrada);
+}
+
+function ajaxFormOnEntrada(entrada){
+	$("#entrada_delete"+entrada._id).ajaxForm({
+		url: '/removeEntrada',
+		dataType: 'json',
+		success: function(data,status,xhr,form){
+			removeRowFromTable(data.id);
+		}
+	});
+}
+
+function removeRowFromTable(entradaId){
+	$("#entrada_row_"+entradaId).remove();
 }

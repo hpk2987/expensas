@@ -50,7 +50,7 @@ var RPCHandler = function(){
 	this['/removeEntrada'] = function(req,resp,query){
 		this.exp.eliminarEntrada(query.id,function(){
 			resp.writeHead(200, { 'Content-Type': 'application/json' });
-			resp.end();
+			resp.end(JSON.stringify({ id:query.id }));
 		});
 	}
 }
