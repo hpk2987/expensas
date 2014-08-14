@@ -86,10 +86,13 @@ var rpcHandler = new RPCHandler();
 http.createServer(function (request, response) {
     console.log('request starting...');
 	
-	var filePath = '.' + request.url;
-	if (filePath == './')
-		filePath = './index.html';
-		
+	var root="./site"
+
+	var filePath =  root + request.url;
+	if (filePath == root+"/")
+		filePath = root+'/index.html';		
+	console.log(filePath);
+
 	var extname = path.extname(filePath);
 	
 	//Handler if RPC
