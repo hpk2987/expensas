@@ -23,7 +23,7 @@ Expensas.prototype.agregarEntrada = function(idCuenta,descripcion,monto,callback
 	var entrada = { 
 		cuenta:idCuenta, 
 		descripcion:descripcion,
-		monto:parseInt(monto),
+		monto:parseFloat(monto),
 		fecha:moment().format('DD/MM/YYYY'),
 		secs:new Date().getTime()};
 	console.log("Agregando entrada:"+JSON.stringify(entrada));
@@ -44,11 +44,31 @@ Expensas.prototype.getCuentas = function(callback){
 	this.db.cuentas.find({},callback);
 }
 
-Expensas.prototype.getEntradas = function(idCuenta,callback){
+Expensas.prototype.getTotalCuenta = function(idCuenta,callback){
+	this.db.entradas.find({ cuenta:idCuenta },function(err,docs){
+		if(callback){			
+			var total=0;			
+			for(var i=0;i<docs.length;i++){
+				total += parseInt((docs[i].monto*10).toString());
+			}
+			callback(err,total/10);
+		}
+	});
+}
+
+Expensas.prototype.getEntradas = function(idCuenta,offset,size,callback){
+	console.log("offset:"+offset+" size:"+size);
 	this.db.entradas.find({ cuenta:idCuenta })
-					.sort({ secs:1 }).exec(function (err, docs) {
+					.sort({ secs:1 })
+					.skip(offset)
+					.limit(size).exec(function (err, docs) {
+		console.log("realSize: "+docs.length);
 		callback(docs);
 	});
+}
+
+Expensas.prototype.countEntradas = function(idCuenta,callback){
+	this.db.entradas.count({ cuenta:idCuenta } ,callback);
 }
 
 function test(){

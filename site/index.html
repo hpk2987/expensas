@@ -12,6 +12,7 @@
 		<script src="/site/js/jquery-2.1.1.js" type="text/javascript"></script>
 		<script src="/site/bootstrap-3.2.0-dist/js/bootstrap.js" type="text/javascript"></script>	
 		<script src="/site/js/jquery.form.js" type="text/javascript"></script>
+		<script src="/site/js/jquery.bootpag.js" type="text/javascript"></script>
 		<script src="/site/js/mustache.js" type="text/javascript"></script>
 		<script src="/site/js/client.js" type="text/javascript"></script>
 	</head>
@@ -37,28 +38,18 @@
 	    					<th>Monto</th>
 	    				</thead>
 	    				<tbody>
-	    					{{#entradas}}
-							<tr id='entrada_row_{{_id}}'>
-								<td>{{fecha}}</td>
-								<td>{{descripcion}}</td>
-								<td>{{monto}}</td>
-								<td>
-									<form id='entrada_delete{{_id}}'>
-										<input type='hidden' name='id' value='{{_id}}'/>
-										<button class="btn btn-default glyphicon glyphicon-minus" type="submit">
-									</form>
-								</td>
-							</tr>
-	    					{{/entradas}}    					
 	    				</tbody>
 	    				<tfoot>
 	    					<tr>
-								<td></td>
+								<td>
+								</td>
 								<td>Total</td>
-								<td>{{getTotal}}</td>
+								<td id='cuenta_total_{{_id}}'>0</td>
+								<td></td>
 							</tr>
 	    				</tfoot>
 	    			</table>
+	    			<div class="pull-right" id="pagination_{{_id}}"></div>
 					<hr>
 	    			<form class="form-inline" id='cuenta_newEntry{{_id}}'>
 							<input type='hidden' name='idCuenta' value='{{_id}}'/>
@@ -76,6 +67,21 @@
 				</div>
 			</div>
   		</script>
+  		<script type="text/x-mustache" id="entradas_rows_template">
+  			{{#entradas}}
+			<tr id='entrada_row_{{_id}}'>
+				<td>{{fecha}}</td>
+				<td>{{descripcion}}</td>
+				<td>{{monto}}</td>
+				<td>
+					<form id='entrada_delete{{_id}}'>
+						<input type='hidden' name='id' value='{{_id}}'/>
+						<button class="btn btn-default glyphicon glyphicon-minus" type="submit">
+					</form>
+				</td>
+			</tr>
+			{{/entradas}}
+		</script>
   		<script type="text/x-mustache" id="entrada_row_template">
 			<tr id='entrada_row_{{_id}}'>
 				<td>{{fecha}}</td>

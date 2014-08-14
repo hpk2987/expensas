@@ -32,11 +32,28 @@ var RPCHandler = function(){
 			resp.end();
 		});
 	}
+	this['/getTotalCuenta'] = function(req,resp,query){
+		this.exp.getTotalCuenta(query.id,function(err,total){
+			console.log("total: "+total);
+			resp.writeHead(200, { 'Content-Type': 'application/json' });
+			resp.end(JSON.stringify({ total:total }));
+		});
+	}
 	this['/getEntradas'] = function(req,resp,query){		
-		this.exp.getEntradas(query.idCuenta,function(docs){
+		this.exp.getEntradas(
+				query.idCuenta,
+				parseInt(query.offset),
+				parseInt(query.size),function(docs){
 			console.log("get: "+JSON.stringify(docs));
 			resp.writeHead(200, { 'Content-Type': 'application/json' });
 			resp.end(JSON.stringify(docs),"utf-8");	
+		});
+	}
+	this['/countEntradas'] = function(req,resp,query){		
+		this.exp.countEntradas(query.idCuenta,function(err,count){
+			console.log("count: "+count);
+			resp.writeHead(200, { 'Content-Type': 'application/json' });
+			resp.end(JSON.stringify({ count:count }),"utf-8");	
 		});
 	}
 	this['/addEntrada'] = function(req,resp,query){
