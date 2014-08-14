@@ -1,4 +1,3 @@
-input, label,button[type="submit"] {
-    float:left;
-    margin:5px;
+body{
+	padding-top:10px;
 }
