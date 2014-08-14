@@ -24,7 +24,7 @@
 						<input type='hidden' name='id' value='{{_id}}'/>
 						<label><b style="font-size:17px">{{nombre}}</b></label>
 						<div style="margin-top:-5px" class="pull-right">
-							<button class="btn btn-default glyphicon glyphicon-minus" type="submit">
+							<button class="btn btn-default glyphicon glyphicon-trash" type="submit">
 							</button>
 						</div>
 					</form>
@@ -32,6 +32,7 @@
 				<div class="panel-body">
 	    			<table class="table" id='cuenta_entradas_{{_id}}'>
 	    				<thead>
+							<th>Fecha</th>
 	    					<th>Descripción</th>
 	    					<th>Monto</th>
 	    				</thead>
@@ -52,12 +53,13 @@
 	    				</tbody>
 	    				<tfoot>
 	    					<tr>
+								<td></td>
 								<td>Total</td>
 								<td>{{getTotal}}</td>
 							</tr>
 	    				</tfoot>
 	    			</table>
-
+					<hr>
 	    			<form class="form-inline" id='cuenta_newEntry{{_id}}'>
 							<input type='hidden' name='idCuenta' value='{{_id}}'/>
 							<div class="form-group">							
