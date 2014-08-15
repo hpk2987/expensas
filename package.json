@@ -1,0 +1,13 @@
+{
+	"name": "expensas",
+	"description": "Control muy simple y basico de control de gastos",
+	"author": "Hernán Keena <hpk2987@gmail.com>",
+	"dependencies": {
+		"nedb": ">= 0.10.7",
+		"daemonize2": ">= 0.4.2",
+		"moment": ">=2.8.1"
+	},
+	"engines": {
+		"node": ">0.8.x"
+	},
+}

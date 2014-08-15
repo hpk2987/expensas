@@ -18,7 +18,7 @@ var paginationData = {
 		}
 
 		return this.currPage;
-	}, 
+	}
 };
 
 $(function() {
@@ -114,6 +114,7 @@ function showCurrentRowPage(cuenta){
 }
 
 function appendRowToTable(entrada){
+	paginationData.count++;
 	if(paginationData.isLastPage()){
 		var template = $("#entrada_row_template").html();
 	  	var result = Mustache.render(template,entrada);

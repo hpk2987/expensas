@@ -1,7 +1,1 @@
-* No permitir submit de valores invalidos
-* Confirmar en todos los eliminar
-* Agregar prefijo al server.js de forma de que apunte a site como root
-* Validar texfield numeros, impedir ingrresar texto
-* Agregar navbar con tiutlo y form de nueva cuenta, eliminar header Cuentas
-
 * Volver el foco al desc en addEntry luego se submit

@@ -20,8 +20,9 @@
 		<script type="text/x-mustache" id="cuenta_template">
     		<div class="panel panel-default" id='cuenta_{{_id}}'>
     			<div class="panel-heading">
-					<form class="form-inline" id='cuenta_delete{{_id}}' 
-		    			  onSubmit='return confirm('Eliminar cuenta?')'>
+					<form 	class="form-inline" 
+							id='cuenta_delete{{_id}}' 
+		    			  	onSubmit="return confirm('Eliminar cuenta?')">
 						<input type='hidden' name='id' value='{{_id}}'/>
 						<label><b style="font-size:17px">{{nombre}}</b></label>
 						<div style="margin-top:-5px" class="pull-right">
@@ -52,15 +53,19 @@
 	    			<div class="pull-right" id="pagination_{{_id}}"></div>
 					<hr>
 	    			<form class="form-inline" id='cuenta_newEntry{{_id}}'>
-							<input type='hidden' name='idCuenta' value='{{_id}}'/>
-							<div class="form-group">							
-								<label>Descripción:</label>
+						<input type='hidden' name='idCuenta' value='{{_id}}'/>
+						<div class="form-group">							
+							<div class="input-group">
+						  		<span class="input-group-addon glyphicon glyphicon-comment"></span>
 								<input class="form-control" type='text' name='desc' value=''/>
 							</div>
-							<div class="form-group">
-								<label>Monto:</label>
+						</div>
+						<div class="form-group">
+							<div class="input-group">
+						  		<span class="input-group-addon glyphicon glyphicon-usd"></span>
 								<input class="form-control" type='text' name='monto' value=''/>
 							</div>
+						</div>
 						<button class="btn btn-default glyphicon glyphicon-plus" type="submit">
 						</button>
 					</form>
@@ -74,7 +79,8 @@
 				<td>{{descripcion}}</td>
 				<td>{{monto}}</td>
 				<td>
-					<form id='entrada_delete{{_id}}'>
+					<form 	id='entrada_delete{{_id}}'
+							onSubmit="return confirm('Eliminar cuenta?')">
 						<input type='hidden' name='id' value='{{_id}}'/>
 						<button class="btn btn-default glyphicon glyphicon-minus" type="submit">
 					</form>
@@ -88,7 +94,8 @@
 				<td>{{descripcion}}</td>
 				<td>{{monto}}</td>
 				<td>
-					<form id='entrada_delete{{_id}}'>
+					<form 	id='entrada_delete{{_id}}'
+							onSubmit="return confirm('Eliminar entrada?')">
 						<input type='hidden' name='id' value='{{_id}}'/>
 						<button class="btn btn-default glyphicon glyphicon-minus" type="submit">
 					<form>
@@ -97,15 +104,25 @@
 		</script>
 
 		<div class="container">
-			<form id="addCuenta" class="form-inline">
-				<div class="form-group">
-					<label>Nueva cuenta:</label>
-					<input class="form-control" type="text" name="nombre"/>
+			<nav class="navbar navbar-default" role="navigation">
+  				<div class="container-fluid">
+  					<div class="navbar-header">
+  						<a class="navbar-brand" href="#">Expensas 0.1</a>
+  					</div>
+  					<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+						<form class="navbar-form navbar-right" id="addCuenta" class="form-inline">
+							<div class="form-group">
+								<div class="input-group">
+							  		<span class="input-group-addon glyphicon glyphicon-user"></span>
+									<input class="form-control" type="text" name="nombre"/>
+								</div>
+							</div>
+							<button class="btn btn-default glyphicon glyphicon-plus" type="submit">
+							</button>				
+						</form>
+					</div>
 				</div>
-				<button class="btn btn-default glyphicon glyphicon-plus" type="submit">
-				</button>				
-			</form>
-			<h4>Cuentas</h4>
+			</nav>
 			<div id="cuentas"></div>
 		</div>
 		
