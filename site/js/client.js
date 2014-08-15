@@ -18,6 +18,15 @@ var paginationData = {
 		}
 
 		return this.currPage;
+	},
+	incCount:function(){
+		this.count++;
+		if(this.currPage==0){
+			this.currPage=1;
+		}
+	},
+	decCount:function(){
+		this.count--;
 	}
 };
 
@@ -114,7 +123,7 @@ function showCurrentRowPage(cuenta){
 }
 
 function appendRowToTable(entrada){
-	paginationData.count++;
+	paginationData.incCount();
 	if(paginationData.isLastPage()){
 		var template = $("#entrada_row_template").html();
 	  	var result = Mustache.render(template,entrada);
@@ -147,7 +156,7 @@ function removeRowFromTable(cuentaId,entradaId){
 
 	actualizarTotal(cuentaId);
 
-	paginationData.count--;
+	paginationData.decCount();
 	$('#pagination_'+cuentaId).bootpag({
 		total: paginationData.pages()
 	});
