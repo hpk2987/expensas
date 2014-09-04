@@ -18,57 +18,59 @@
 	</head>
 	<body>
 		<script type="text/x-mustache" id="cuenta_template">
-    		<div class="panel panel-default" id='cuenta_{{_id}}'>
-    			<div class="panel-heading">
-					<form 	class="form-inline" 
-							id='cuenta_delete{{_id}}' 
-		    			  	onSubmit="return confirm('Eliminar cuenta?')">
-						<input type='hidden' name='id' value='{{_id}}'/>
-						<label><b style="font-size:17px">{{nombre}}</b></label>
-						<div style="margin-top:-5px" class="pull-right">
-							<button class="btn btn-default glyphicon glyphicon-trash" type="submit">
+    		<div class="tab-pane" id='cuenta_{{_id}}'>
+	    		<div class="panel panel-default">
+	    			<div class="panel-heading">
+						<form 	class="form-inline" 
+								id='cuenta_delete{{_id}}' 
+			    			  	onSubmit="return confirm('Eliminar cuenta?')">
+							<input type='hidden' name='id' value='{{_id}}'/>
+							<label><b style="font-size:17px">{{nombre}}</b></label>
+							<div style="margin-top:-5px" class="pull-right">
+								<button class="btn btn-default glyphicon glyphicon-trash" type="submit">
+								</button>
+							</div>
+						</form>
+					</div>
+					<div class="panel-body">
+		    			<table class="table" id='cuenta_entradas_{{_id}}'>
+		    				<thead>
+								<th>Fecha</th>
+		    					<th>Descripción</th>
+		    					<th>Monto</th>
+		    				</thead>
+		    				<tbody>
+		    				</tbody>
+		    				<tfoot>
+		    					<tr>
+									<td>
+									</td>
+									<td>Total</td>
+									<td id='cuenta_total_{{_id}}'>0</td>
+									<td></td>
+								</tr>
+		    				</tfoot>
+		    			</table>
+		    			<div class="pull-right" id="pagination_{{_id}}"></div>
+						<hr>
+		    			<form class="form-inline" id='cuenta_newEntry{{_id}}'>
+							<input type='hidden' name='idCuenta' value='{{_id}}'/>
+							<div class="form-group">							
+								<div class="input-group">
+							  		<span class="input-group-addon glyphicon glyphicon-comment"></span>
+									<input class="form-control" type='text' name='desc' value=''/>
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="input-group">
+							  		<span class="input-group-addon glyphicon glyphicon-usd"></span>
+									<input class="form-control" type='text' name='monto' value=''/>
+								</div>
+							</div>
+							<button class="btn btn-default glyphicon glyphicon-plus" type="submit">
 							</button>
-						</div>
-					</form>
-				</div>
-				<div class="panel-body">
-	    			<table class="table" id='cuenta_entradas_{{_id}}'>
-	    				<thead>
-							<th>Fecha</th>
-	    					<th>Descripción</th>
-	    					<th>Monto</th>
-	    				</thead>
-	    				<tbody>
-	    				</tbody>
-	    				<tfoot>
-	    					<tr>
-								<td>
-								</td>
-								<td>Total</td>
-								<td id='cuenta_total_{{_id}}'>0</td>
-								<td></td>
-							</tr>
-	    				</tfoot>
-	    			</table>
-	    			<div class="pull-right" id="pagination_{{_id}}"></div>
-					<hr>
-	    			<form class="form-inline" id='cuenta_newEntry{{_id}}'>
-						<input type='hidden' name='idCuenta' value='{{_id}}'/>
-						<div class="form-group">							
-							<div class="input-group">
-						  		<span class="input-group-addon glyphicon glyphicon-comment"></span>
-								<input class="form-control" type='text' name='desc' value=''/>
-							</div>
-						</div>
-						<div class="form-group">
-							<div class="input-group">
-						  		<span class="input-group-addon glyphicon glyphicon-usd"></span>
-								<input class="form-control" type='text' name='monto' value=''/>
-							</div>
-						</div>
-						<button class="btn btn-default glyphicon glyphicon-plus" type="submit">
-						</button>
-					</form>
+						</form>
+					</div>
 				</div>
 			</div>
   		</script>
@@ -102,6 +104,9 @@
 				</td>
 			</tr>
 		</script>
+		<script type="text/x-mustache" id="tab_entry">
+			<li><a href="#cuenta_{{_id}}" role="tab" data-toggle="tab">{{nombre}}</a></li>
+		</script>
 
 		<div class="container">
 			<nav class="navbar navbar-default" role="navigation">
@@ -110,6 +115,8 @@
   						<a class="navbar-brand" href="#">Expensas 0.1</a>
   					</div>
   					<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+						<ul id="cuentas_tabs" class="nav navbar-nav" role="tablist">			  
+						</ul>
 						<form class="navbar-form navbar-right" id="addCuenta" class="form-inline">
 							<div class="form-group">
 								<div class="input-group">
@@ -123,7 +130,9 @@
 					</div>
 				</div>
 			</nav>
-			<div id="cuentas"></div>
+			<hr>
+			<div id="cuentas" class="tab-content">
+			</div>
 		</div>
 		
 	</body>

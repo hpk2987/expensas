@@ -59,9 +59,13 @@ function addCuentaDiv(cuenta){
 		paginationData.init(data.count);
 
 		var template = $("#cuenta_template").html();			
-	  	var result = Mustache.render(template,cuenta);
+		var result = Mustache.render(template,cuenta);
 
 		$("#cuentas").append(result);
+
+		var tabtemplate = $("#tab_entry").html();			
+		var tabresult = Mustache.render(tabtemplate,cuenta);
+		$("#cuentas_tabs").append(tabresult);
 
 		actualizarTotal(cuenta._id);	
 
