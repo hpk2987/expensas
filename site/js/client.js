@@ -56,6 +56,9 @@ $(function() {
 function addCuentaDiv(cuenta){
 	$.get( "/countEntradas?idCuenta="+cuenta._id, function( data ) {
 		
+		//calculate cuentas div size
+		var height = $("#")
+
 		paginationData.init(data.count);
 
 		var template = $("#cuenta_template").html();			
@@ -67,17 +70,19 @@ function addCuentaDiv(cuenta){
 		var tabresult = Mustache.render(tabtemplate,cuenta);
 		$("#cuentas_tabs").append(tabresult);
 
-		actualizarTotal(cuenta._id);	
+		//Scrolling
+		/*$("#cuenta_QSDiruvhdXZEfFiT > div:nth-child(1) > div:nth-child(2)")
+		.paged_scroll({
+	        handleScroll:function (page,container,doneCallback) {
+	            alert("sccccc");
+	        },
+	        triggerFromBottom:'10px',
+	        targetElement : $("#cuenta_entradas"+cuenta._id),
+	        loader:'<div class="loader">Cargando ...</div>'
+	    });*/
 
-		//Paginado
-		$('#pagination_'+cuenta._id).bootpag({
-		    total: paginationData.pages(),
-		    page: paginationData.currentPage(),
-		}	).on("page", function(event, num){
-			paginationData.currPage = num;
-			showCurrentRowPage(cuenta);
-		});
-		showCurrentRowPage(cuenta);
+		actualizarTotal(cuenta._id);	
+		addRowsFromPage(cuenta,1,paginationData.pageSize);
 
 		$("#cuenta_delete"+cuenta._id).ajaxForm({
 			url: '/removeCuenta',
@@ -101,39 +106,39 @@ function addCuentaDiv(cuenta){
 				return true;
 			},
 			success: function(data,status,xhr,form){
-				appendRowToTable(data);
+				prependRowToTable(data);
 			}
 		});
 	});
 }
 
-function showCurrentRowPage(cuenta){
+function addRowsFromPage(cuenta,page,pageSize){
 	$.get( 	"/getEntradas?idCuenta="+cuenta._id+
 					"&offset="+
-					(paginationData.currentPage()-1)*(paginationData.pageSize)+
-					"&size="+paginationData.pageSize, function( data ) {
-		cuenta.entradas = data;
+					(page-1)*(pageSize)+
+					"&size="+pageSize, function( data ) {
+		cuenta.entradas=data;
 
 		var template = $("#entradas_rows_template").html();			
 			var result = Mustache.render(template,cuenta);
-		$("#cuenta_entradas_"+cuenta._id+">tbody").html(result);
+		$("#cuenta_entradas_"+cuenta._id+">tbody>tr:first")
+			.after(result);
 
 		cuenta.entradas.forEach(function(entrada){
 			ajaxFormOnEntrada(entrada);
-
 		});
 	});
 
 }
 
-function appendRowToTable(entrada){
+function prependRowToTable(entrada){
 	paginationData.incCount();
 	if(paginationData.isLastPage()){
 		var template = $("#entrada_row_template").html();
 	  	var result = Mustache.render(template,entrada);
 
-		$("#cuenta_entradas_"+entrada.cuenta+">tbody:last")
-			.append(result);
+		$("#cuenta_entradas_"+entrada.cuenta+">tbody>tr:first")
+			.after(result);
 
 		ajaxFormOnEntrada(entrada);
 
