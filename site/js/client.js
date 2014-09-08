@@ -1,3 +1,6 @@
+var cuentaActual;
+
+
 var paginationData = { 
 	pageSize:5, 
 	currPage:1,
@@ -33,14 +36,14 @@ var paginationData = {
 $(function() {
 	$.get( "/getCuentas", function( data ) {
 		data.forEach(function(entry){
-			addCuentaDiv(entry);
+			addNavbarButton(entry);
 		});
 	});
 
 	$("#addCuenta").ajaxForm({
 		url: '/addCuenta', 
 		dataType: 'json',
-		resetForm: true,
+		resetForm: true, 
 		beforeSubmit:function(formData, jqForm, options){
 			if(!formData[0].value){
 				return false;
@@ -48,10 +51,73 @@ $(function() {
 			return true;
 		},
 		success: function(data,status,xhr,form) {
-			addCuentaDiv(data);
+			addNavbarButton(data);
     	}
 	});
 });
+
+function addNavbarButton(cuenta){
+	var tabtemplate = $("#tab_entry").html();			
+	var tabresult = Mustache.render(tabtemplate,cuenta);
+	$("#cuentas_tabs").append(tabresult);	
+}
+
+function showSelectedCuenta(idCuenta){
+	var cuenta = {_id:idCuenta,entradas:[]};
+	var pageSize = 10;
+
+	var template = $("#cuenta_template").html();			
+	var result = Mustache.render(template,cuenta);
+
+	// Remplazar la vieja cuenta y poner el nuevo esqueleto
+	$("#content").html(result);
+
+	// Completar el esqueleto con la primer pagina de entradas
+	$.get( 	"/getEntradas?idCuenta="+cuenta._id+
+					"&offset=0"+
+					"&size="+pageSize, function( data ) {
+		cuenta.entradas=data;
+
+		var template = $("#entradas_rows_template").html();			
+		var result = Mustache.render(template,cuenta);
+		$("#cuenta_entradas_"+cuenta._id+">tbody>tr:first")
+			.after(result);
+
+		cuenta.entradas.forEach(function(entrada){
+			ajaxFormOnEntrada(entrada);
+		});
+	});
+
+	// Reconfigurar el scroll para la nueva cuenta
+	.paged_scroll({
+	        handleScroll:function (page,container,doneCallback) {
+	            alert("sccccc");
+	        },
+	        triggerFromBottom:'10px',
+	        targetElement : $("#cuenta_entradas"+cuenta._id),
+	        loader:'<div class="loader">Cargando ...</div>'
+	    });*/
+
+
+	// Reconfigurar el boton de nueva 	
+	$("#cuenta_newEntry"+cuenta._id).ajaxForm({
+		url: '/addEntrada',
+		dataType: 'json',
+		resetForm: true,
+		beforeSubmit:function(formData, jqForm, options){
+			if(!formData[1].value){
+				return false;
+			}
+			if(isNaN(parseFloat(formData[2].value))){
+				return false;
+			}
+			return true;
+		},
+		success: function(data,status,xhr,form){
+			prependRowToTable(data);
+		}
+	});
+}
 
 function addCuentaDiv(cuenta){
 	$.get( "/countEntradas?idCuenta="+cuenta._id, function( data ) {
