@@ -31,7 +31,7 @@ function showSelectedCuenta(idCuenta){
 	// Paginacion
 	var bottomTrigger=20;
 	var page=1;
-	var pageSize=7;
+	var pageSize=50;
 
 	// Reconfigurar el scroll para la nueva cuenta	
 	$.get( "/countEntradas?idCuenta="+idCuenta, function( data ) {

@@ -59,7 +59,7 @@ Expensas.prototype.getTotalCuenta = function(idCuenta,callback){
 Expensas.prototype.getEntradas = function(idCuenta,offset,size,callback){
 	console.log("offset:"+offset+" size:"+size);
 	this.db.entradas.find({ cuenta:idCuenta })
-					.sort({ secs:1 })
+					.sort({ secs:-1 })
 					.skip(offset)
 					.limit(size).exec(function (err, docs) {
 		console.log("realSize: "+docs.length);
