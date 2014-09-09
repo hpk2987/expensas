@@ -1,38 +1,3 @@
-var cuentaActual;
-
-
-var paginationData = { 
-	pageSize:5, 
-	currPage:1,
-	count:0,
-	init:function(count){
-		this.count = count;
-		this.currPage = this.pages();
-	},
-	isLastPage: function(){
-		return this.currentPage()==this.pages();
-	},
-	pages:function(){
-		return Math.ceil(this.count/this.pageSize);
-	},
-	currentPage:function(){
-		if(this.currPage>this.pages()){
-			this.currPage = this.pages();
-		}
-
-		return this.currPage;
-	},
-	incCount:function(){
-		this.count++;
-		if(this.currPage==0){
-			this.currPage=1;
-		}
-	},
-	decCount:function(){
-		this.count--;
-	}
-};
-
 $(function() {
 	$.get( "/getCuentas", function( data ) {
 		data.forEach(function(entry){
@@ -63,20 +28,39 @@ function addNavbarButton(cuenta){
 }
 
 function showSelectedCuenta(idCuenta){
-	var cuenta = {_id:idCuenta,entradas:[]};
-	var pageSize = 10;
+	// Paginacion
+	var bottomTrigger=20;
+	var page=1;
+	var pageSize=7;
 
+	// Reconfigurar el scroll para la nueva cuenta	
+	$.get( "/countEntradas?idCuenta="+idCuenta, function( data ) {
+		var throttled = 
+		_.throttle(function(event) {
+			if($(window).scrollTop() + $(window).height() > 
+						$(document).height() - bottomTrigger) {
+				if(page<data.count/pageSize){
+	       			addRowsFromPage(idCuenta,page,pageSize);
+	       			page++;
+	       		}
+	   		}
+		},20,{trailing:false});
+		
+		$(window).scroll(throttled);
+	});
+
+	//HTML cuenta
 	var template = $("#cuenta_template").html();			
-	var result = Mustache.render(template,cuenta);
+	var result = Mustache.render(template,{_id:idCuenta,entradas:[]});
 
 	// Remplazar la vieja cuenta y poner el nuevo esqueleto
 	$("#content").html(result);
 
 	// Completar el esqueleto con la primer pagina de entradas
-	$.get( 	"/getEntradas?idCuenta="+cuenta._id+
+	$.get( 	"/getEntradas?idCuenta="+idCuenta+
 					"&offset=0"+
 					"&size="+pageSize, function( data ) {
-		cuenta.entradas=data;
+		var cuenta = {_id:idCuenta,entradas:data};
 
 		var template = $("#entradas_rows_template").html();			
 		var result = Mustache.render(template,cuenta);
@@ -88,19 +72,10 @@ function showSelectedCuenta(idCuenta){
 		});
 	});
 
-	// Reconfigurar el scroll para la nueva cuenta
-	.paged_scroll({
-	        handleScroll:function (page,container,doneCallback) {
-	            alert("sccccc");
-	        },
-	        triggerFromBottom:'10px',
-	        targetElement : $("#cuenta_entradas"+cuenta._id),
-	        loader:'<div class="loader">Cargando ...</div>'
-	    });*/
-
+	actualizarTotal(idCuenta);
 
 	// Reconfigurar el boton de nueva 	
-	$("#cuenta_newEntry"+cuenta._id).ajaxForm({
+	$("#cuenta_newEntry"+idCuenta).ajaxForm({
 		url: '/addEntrada',
 		dataType: 'json',
 		resetForm: true,
@@ -119,76 +94,16 @@ function showSelectedCuenta(idCuenta){
 	});
 }
 
-function addCuentaDiv(cuenta){
-	$.get( "/countEntradas?idCuenta="+cuenta._id, function( data ) {
-		
-		//calculate cuentas div size
-		var height = $("#")
-
-		paginationData.init(data.count);
-
-		var template = $("#cuenta_template").html();			
-		var result = Mustache.render(template,cuenta);
-
-		$("#cuentas").append(result);
-
-		var tabtemplate = $("#tab_entry").html();			
-		var tabresult = Mustache.render(tabtemplate,cuenta);
-		$("#cuentas_tabs").append(tabresult);
-
-		//Scrolling
-		/*$("#cuenta_QSDiruvhdXZEfFiT > div:nth-child(1) > div:nth-child(2)")
-		.paged_scroll({
-	        handleScroll:function (page,container,doneCallback) {
-	            alert("sccccc");
-	        },
-	        triggerFromBottom:'10px',
-	        targetElement : $("#cuenta_entradas"+cuenta._id),
-	        loader:'<div class="loader">Cargando ...</div>'
-	    });*/
-
-		actualizarTotal(cuenta._id);	
-		addRowsFromPage(cuenta,1,paginationData.pageSize);
-
-		$("#cuenta_delete"+cuenta._id).ajaxForm({
-			url: '/removeCuenta',
-			dataType: 'html',
-			success: function(data,status,xhr,form){
-				$("#cuenta_"+cuenta._id).remove();
-			}
-		});
-
-		$("#cuenta_newEntry"+cuenta._id).ajaxForm({
-			url: '/addEntrada',
-			dataType: 'json',
-			resetForm: true,
-			beforeSubmit:function(formData, jqForm, options){
-				if(!formData[1].value){
-					return false;
-				}
-				if(isNaN(parseFloat(formData[2].value))){
-					return false;
-				}
-				return true;
-			},
-			success: function(data,status,xhr,form){
-				prependRowToTable(data);
-			}
-		});
-	});
-}
-
-function addRowsFromPage(cuenta,page,pageSize){
-	$.get( 	"/getEntradas?idCuenta="+cuenta._id+
-					"&offset="+
-					(page-1)*(pageSize)+
+function addRowsFromPage(idCuenta,page,pageSize){	
+	$.get( 	"/getEntradas?idCuenta="+idCuenta+
+					"&offset="+page*pageSize+
 					"&size="+pageSize, function( data ) {
-		cuenta.entradas=data;
+		var cuenta = {_id:idCuenta,entradas:data};
 
 		var template = $("#entradas_rows_template").html();			
 			var result = Mustache.render(template,cuenta);
-		$("#cuenta_entradas_"+cuenta._id+">tbody>tr:first")
-			.after(result);
+		$("#cuenta_entradas_"+cuenta._id+">tbody")
+			.append(result);
 
 		cuenta.entradas.forEach(function(entrada){
 			ajaxFormOnEntrada(entrada);
@@ -198,18 +113,27 @@ function addRowsFromPage(cuenta,page,pageSize){
 }
 
 function prependRowToTable(entrada){
-	paginationData.incCount();
-	if(paginationData.isLastPage()){
-		var template = $("#entrada_row_template").html();
-	  	var result = Mustache.render(template,entrada);
+	var template = $("#entrada_row_template").html();
+  	var result = Mustache.render(template,entrada);
 
-		$("#cuenta_entradas_"+entrada.cuenta+">tbody>tr:first")
-			.after(result);
+	$("#cuenta_entradas_"+entrada.cuenta+">tbody>tr:first")
+		.after(result);
 
-		ajaxFormOnEntrada(entrada);
+	ajaxFormOnEntrada(entrada);
 
-		actualizarTotal(entrada.cuenta);
-	}
+	actualizarTotal(entrada.cuenta);
+}
+
+function removeRowFromTable(cuentaId,entradaId){
+	$("#entrada_row_"+entradaId).remove();
+	actualizarTotal(cuentaId);
+}
+
+function actualizarTotal(cuentaId){
+	$.get( "/getTotalCuenta?id="+cuentaId, function( data ) {
+		$("#cuenta_total_"+cuentaId)
+			.html(data.total);
+	});
 }
 
 function ajaxFormOnEntrada(entrada){
@@ -223,24 +147,5 @@ function ajaxFormOnEntrada(entrada){
 			$("#cuenta_newEntry_"+entrada._id+">input[name='desc']")
 				.focus();
 		}
-	});
-}
-
-function removeRowFromTable(cuentaId,entradaId){
-	$("#entrada_row_"+entradaId).remove();
-
-	actualizarTotal(cuentaId);
-
-	paginationData.decCount();
-	$('#pagination_'+cuentaId).bootpag({
-		total: paginationData.pages()
-	});
-	showCurrentRowPage({ _id:cuentaId });
-}
-
-function actualizarTotal(cuentaId){
-	$.get( "/getTotalCuenta?id="+cuentaId, function( data ) {
-		$("#cuenta_total_"+cuentaId)
-			.html(data.total);
 	});
 }
