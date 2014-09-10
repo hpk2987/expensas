@@ -56,23 +56,7 @@ function showSelectedCuenta(idCuenta){
 	// Remplazar la vieja cuenta y poner el nuevo esqueleto
 	$("#content").html(result);
 
-	// Completar el esqueleto con la primer pagina de entradas
-	$.get( 	"/getEntradas?idCuenta="+idCuenta+
-					"&offset=0"+
-					"&size="+pageSize, function( data ) {
-		var cuenta = {_id:idCuenta,entradas:data};
-
-		var template = $("#entradas_rows_template").html();			
-		var result = Mustache.render(template,cuenta);
-		$("#cuenta_entradas_"+cuenta._id+">tbody>tr:first")
-			.after(result);
-
-		cuenta.entradas.forEach(function(entrada){
-			ajaxFormOnEntrada(entrada);
-		});
-	});
-
-	actualizarTotal(idCuenta);
+	addRowsFromPage(idCuenta,0,pageSize);	
 
 	// Reconfigurar el boton de nueva 	
 	$("#cuenta_newEntry"+idCuenta).ajaxForm({
@@ -105,11 +89,24 @@ function addRowsFromPage(idCuenta,page,pageSize){
 		$("#cuenta_entradas_"+cuenta._id+">tbody")
 			.append(result);
 
+		$("td.colDesc").each(function(idx){
+			var html = $(this).html();
+			if(html=="Saldado"){
+				$(this).css("background-color","#DEDEDE");
+				$(this).css("border-top","3px solid #DEDEDE");
+				$(this).siblings().each(function(idx2){
+					$(this).css("background-color","#DEDEDE");
+					$(this).css("border-top","3px solid #DEDEDE");
+				});
+			}
+		});
+
 		cuenta.entradas.forEach(function(entrada){
 			ajaxFormOnEntrada(entrada);
 		});
 	});
 
+	actualizarTotal(idCuenta);
 }
 
 function prependRowToTable(entrada){
