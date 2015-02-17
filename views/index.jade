@@ -1,0 +1,29 @@
+extends layout
+
+block content
+	form(class="form-inline",
+		action="/agregar_servicio",
+		method="POST")
+			label Tipo
+			input(class="form-control" , id="main-control" type='text', name='tipo', value='', placeholder='')
+			
+			label Cliente
+			input(class="form-control" , type='text', name='cliente', value='', placeholder='')
+			
+			label Nombre
+			input(class="form-control" , type='text', name='nombre', value='', placeholder='')
+
+			label Cuenta
+			select(class="form-control" name="cuenta")
+					each cuenta in cuentas
+						option(value=cuenta._id)=cuenta.nombre
+
+			span.input-group.btn
+				button(class="btn btn-default")
+					span(class="glyphicon glyphicon-plus", type="submit")
+
+	form(action="/cargar_comprobante",class="dropzone")
+		.fallback
+			input(name="file", type="file", multiple)
+		.dz-message
+			Arrastrar comprobantes a cargar

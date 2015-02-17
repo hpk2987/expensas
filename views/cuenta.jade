@@ -1,0 +1,54 @@
+extends layout
+
+block content
+	div(class='panel panel-default')
+		.panel-heading(style="height:50px")
+			div(style="margin-top:-6px" class="pull-left")
+				form(	class="form-inline",
+						action="/agregar_entrada",
+						method="POST")
+					input(type='hidden', name='cuenta_id', value= cuenta_actual)
+					.form-group
+						.input-group
+							span.input-group-addon
+								span(class="glyphicon glyphicon-comment")
+							input(class="form-control" id="main-control", type='text', name='descripcion', value='')
+					.form-group
+						.input-group
+							span.input-group-addon
+								span(class="glyphicon glyphicon-usd")
+							input(class="form-control", type='text', name='monto' value='')
+					span.input-group.btn
+						button(class="btn btn-default")
+							span(class="glyphicon glyphicon-plus", type="submit")
+			div(class="pull-right")
+				form(	class='form-inline',
+						action="/eliminar_cuenta",
+						method="POST",
+						onSubmit="return confirm('Eliminar cuenta?')")
+					input(type='hidden',name='id',value= cuenta_actual)
+					button(class="btn btn-default glyphicon glyphicon-trash" type="submit")
+		.panel-body
+			hr
+			table(class='table')
+				thead
+					th Fecha
+					th Descripción
+					th Monto
+					th
+				tbody
+					tr(style='background-color:#CCD0FF')
+						td
+						td Total
+						td= total
+						td
+					each entrada in entradas
+						tr
+							td= entrada.fecha
+							td= entrada.descripcion
+							td= entrada.monto
+							td
+								form(action='/eliminar_entrada' method='POST' onSubmit="return confirm('Eliminar entrada?')")
+									input(type='hidden' name='id' value= entrada._id)
+									input(type='hidden' name='cuenta_id' value= cuenta_actual)
+									button(class="btn btn-default glyphicon glyphicon-minus" type="submit")
