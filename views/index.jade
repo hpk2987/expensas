@@ -26,44 +26,74 @@ block content
 		.dz-message Carga de comprobantes para registro (Arrastrar comprobantes pdf)
 	hr
 	.dropzone_btns
-		a(href="#",onclick="cargarPdfs()",class="btn btn-success") Subir
+		a(href="#",id="cargar-pdfs",class="btn btn-success") Subir
 			span(class="glyphicon glyphicon-upload")
 
-		a(href="#",onclick="limpiarPdfs()",class="btn btn-danger") Limpiar
+		a(href="#",id="borrar-pdfs",class="btn btn-danger") Limpiar
 			span(class="glyphicon glyphicon-trash")
 
 	form(action="#",class="dropzone",id="pdfs")
 		.dz-message Generacion de pdf imprimible (Arrastrar comprobantes pdf)
 
 block scripts
+
+	// Dropzone
 	script(type='text/javascript').
-		// Disable auto discover for all elements:
-		Dropzone.autoDiscover = false;
+		Dropzone.options.comprobantes = {
+			url: '/cargar_comprobante'
+		};
 
-		var pdfDrop;
-		$(document).ready(function() {
-			new Dropzone('#comprobantes',{
-				url: '/cargar_comprobante'
-			});
+		Dropzone.options.pdfs = {
+			uploadMultiple:true,
+			url: '/cargar_pdf',
+			parallelUploads:20,
+			maxFiles:20,
+			autoProcessQueue: false,
+			init: function() {
+				var _this = this;
 
-			pdfDrop = new Dropzone('#pdfs',{
-				uploadMultiple:true,
-				url: '/cargar_pdf',
-				parallelUploads:20,
-				maxFiles:20,
-				autoProcessQueue: false
-			});
+		        // Setup the observer for the button.
+				document.querySelector("#borrar-pdfs")
+					.addEventListener("click", function() {
+						_this.removeAllFiles();
+				});
 
-			pdfDrop.on('queuecomplete',function(){
-				window.location = '/descargar_agrupado';
-				pdfDrop.removeAllFiles();
-			})
-		});
+				document.querySelector("#cargar-pdfs")
+					.addEventListener("click", function() {
+						overlayControl.show();
+						_this.processQueue();
+				});
 
-		function cargarPdfs(){
-			pdfDrop.processQueue();
-		}
+				this.on('queuecomplete',function(){
+					window.location = '/descargar_agrupado';
+					overlayControl.hide();
+					_this.removeAllFiles();
+				});
+			}
+		};
 
-		function limpiarPdfs(){
-			pdfDrop.removeAllFiles();
-		}
+		// Overlay waiting
+		var overlayControl = {
+			show:function(){
+				var docHeight = $(document).height();
+
+				$("body").append("<div id='overlay'></div>");
+
+				$("#overlay")
+					.height(docHeight)
+					.css({
+						'opacity' : 0.4,
+						'position': 'absolute',
+						'top': 0,
+						'left': 0,
+						'background-color': 'black',
+						'background': 'rgba( 0, 0, 0, .4 ) url(\'/loading2.gif\') 50% 50% no-repeat',
+						'width': '100%',
+						'z-index': 5000
+					});
+			},
+
+			hide:function(){
+				$("div#overlay").remove();
+			}
+		};
