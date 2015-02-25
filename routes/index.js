@@ -3,6 +3,7 @@ var express = require('express');
 var router = express.Router();
 var busboy = require('connect-busboy');
 var moment = require('moment');
+var conv = require('../convertidor');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -89,7 +90,7 @@ router.post('/cargar_comprobante', function(req, res, next) {
     req.busboy.on('file', function (fieldname, file, filename) {
         console.log("Uploading: " + filename); 
         var path = __dirname + '/../files/' + filename;
-        var fstream = fs.createWriteStream(path);
+    	var fstream = fs.createWriteStream(path);
         file.pipe(fstream);
         fstream.on('close', function () {
             
@@ -106,5 +107,39 @@ router.post('/cargar_comprobante', function(req, res, next) {
     });	
 });
 
+router.get('/descargar_agrupado', function(req, res, next) {
+	fs.readFile(__dirname + "/../files/agrupado.pdf", function (err,data){
+	     res.contentType("application/pdf");
+	     res.send(data);
+  	});
+});
+
+router.post('/cargar_pdf', function(req, res, next) {
+	req.pipe(req.busboy);
+
+	var convertidor = new conv.Convertidor();
+	var files=[];
+    req.busboy.on('file', function (fieldname, file, filename) {
+		var path = __dirname + '/../files/' + filename;
+		console.log("Cargando: " + filename);
+		
+		var fstream = fs.createWriteStream(path);
+		file.pipe(fstream);
+		
+		files.push(path);
+	});
+
+
+
+    req.busboy.on('finish', function(){
+        console.log('Se cargaron todos los archivos ' + files);
+        console.log('Convirtiendo...');
+        convertidor.convertir(files,__dirname + "/../files",function(filename){
+        	console.log('Se genero pdf ' + filename + ' enviando...');
+        	res.redirect('back');
+        })        
+    });
+});
 
 module.exports = router;
+	

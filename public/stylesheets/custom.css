@@ -5,3 +5,12 @@ body{
 .form-inline > * {
    margin-left:5px;
 }
+
+.dropzone_btns a{
+	margin-left: 5px;
+	margin-bottom: 2px;
+}
+
+.dropzone_btns span{
+	margin-left: 2px;	
+}
