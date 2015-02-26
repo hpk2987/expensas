@@ -126,10 +126,10 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 // TESTING =>
 var conv = new Convertidor();
 
-var pdf="./carga_test/t1.pdf";
+/*var pdf="./carga_test/t1.pdf";
 conv.convertir(
 	[pdf,pdf,pdf,pdf],
 	"./files",
 	function(filename){
 		console.log(filename);
-	});
+	});*/
