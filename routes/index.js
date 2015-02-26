@@ -64,8 +64,8 @@ router.post('/agregar_servicio', function(req, res, next) {
 var agregarNuevaEntrada = function(resultado){
 	resultado.extra.expensas.agregarEntrada(
 		resultado.servicio.cuenta,
-		resultado.tipo,
-		resultado.monto,
+		resultado.servicio.nombre,
+		resultado.importe,
 		function(err,newDocs){
 			resultado.extra.callback();
 	});
@@ -75,14 +75,21 @@ var renombrarArchivo = function(resultado){
 	console.log(resultado);
 	resultado.extra.expensas.getServicio(
 		resultado.tipo,resultado.cliente,function(servicio){
-		resultado.servicio=servicio;
-		var nuevo = __dirname + "/../files/" + "LinkPagos-"+servicio.nombre+"-"+moment().format('DD-MM-YYYY')+".pdf";
-		console.log("Renombrando a : "+ nuevo);
-		fs.rename(resultado.extra.archivo,nuevo,function(){
-			// TODO: Copiar el archivo al server por smb
-			agregarNuevaEntrada(resultado);
+			if(servicio){
+				resultado.servicio=servicio;
+				console.log("Servicio:");
+				console.log(servicio);
+				var nuevo = __dirname + "/../files/" + "LinkPagos-"+servicio.nombre+"-"+moment().format('DD-MM-YYYY')+".pdf";
+				console.log("Renombrando a : "+ nuevo);
+				fs.rename(resultado.extra.archivo,nuevo,function(){
+					// TODO: Copiar el archivo al server por smb
+					agregarNuevaEntrada(resultado);
+				});
+			}else{
+				console.log("ERROR: {cliente:"+resultado.cliente+" , tipo:"+resultado.tipo+" no esta en la base de datos");
+				resultado.extra.callback("ERROR: {cliente:"+resultado.cliente+" , tipo:"+resultado.tipo+" no esta en la base de datos");
+			}
 		});
-	});
 }
 
 router.post('/cargar_comprobante', function(req, res, next) {
@@ -99,8 +106,12 @@ router.post('/cargar_comprobante', function(req, res, next) {
             	renombrarArchivo,{
             		archivo:path,
             		expensas: res.locals.expensas,
-            		callback: function(){
-            			res.redirect('back');
+            		callback: function(err){
+            			if(err){
+            				res.status(500).send(err);
+            			}else{
+            				res.redirect('back');
+            			}
             		}
             	});
         });
