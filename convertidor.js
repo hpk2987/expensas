@@ -16,7 +16,7 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 		var infile = pdfs.splice(0,1)[0];
 		var outfile = temporal+"/pdfapng_"+idx+".png";
 		var dpi=300;
-		var cmd = "/usr/bin/gs -dQUIET -dPARANOIDSAFER -dBATCH -dNOPAUSE -dNOPROMPT -sDEVICE=png16m -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -r"+dpi+" -dFirstPage=1 -dLastPage=1 -sOutputFile="+outfile+" "+infile;
+		var cmd = "gs -dQUIET -dPARANOIDSAFER -dBATCH -dNOPAUSE -dNOPROMPT -sDEVICE=png16m -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -r"+dpi+" -dFirstPage=1 -dLastPage=1 -sOutputFile=\""+outfile+"\" \""+infile+"\"";
 		exec(cmd, function (error, stdout, stderr) {
 			if ( error !== null ) {
 				throw(error);
@@ -47,20 +47,25 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 			if(idx>0){
 				doc.addPage({size: 'A4'});
 			}
-			doc.image(file, 0, 0, {width: 600});
+			doc.image(file, 0, 0,{width:600});
 		});
 		doc.end();
 	}
 
 	var dibujar = function(ctx,stack){
-		var offsets = [
-		{x:0,y:0},
-		{x:1200,y:0},
-		{x:0,y:1700},
-		{x:1200,y:1700}];
+		var offsets = JSON.parse(fs.readFileSync("offsets.json"));
 
 		stack.forEach(function(o,idx){
-			ctx.drawImage(o, offsets[idx].x, offsets[idx].y, o.width, o.height);	
+			off = offsets[idx];
+			ctx.drawImage(o, 
+				off.sx,
+				off.sy,
+				off.sWidth,
+				off.sHeight,
+				off.dx,
+				off.dy,
+				off.dWidth,
+				off.dHeight);
 		});
     }
 
@@ -79,7 +84,7 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 
 	var procesarImagen = function(imagenes,stack,groups,ctx){
 		var imagen = imagenes.splice(0,1)[0];
-		fs.readFile(imagen, function(err, data) {			
+		fs.readFile(imagen, function(err, data) {
 			var img = new Image();
 			img.src = data;
 			stack.push(img);
@@ -119,12 +124,12 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 }
 
 // TESTING =>
-/*var conv = new Convertidor();
+var conv = new Convertidor();
 
-var pdf="/home/hernan/Test/expensas/test.pdf";
+var pdf="./carga_test/t1.pdf";
 conv.convertir(
-	[pdf,pdf,pdf,pdf,pdf,pdf,pdf],
-	"/home/hernan/Test/expensas/files",
+	[pdf,pdf,pdf,pdf],
+	"./files",
 	function(filename){
 		console.log(filename);
-	});*/
+	});
