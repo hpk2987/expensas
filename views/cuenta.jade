@@ -29,6 +29,9 @@ block content
 					input(type='hidden',name='id',value= cuenta_actual)
 					button(class="btn btn-default glyphicon glyphicon-trash" type="submit")
 		.panel-body
+			if modificador
+				p
+					i Modificador = #{modificador}
 			hr
 			table(class='table')
 				thead

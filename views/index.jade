@@ -5,10 +5,18 @@ block content
 		each cuenta in resumen.cuentas
 			div(class='panel panel-default')
 				.panel-heading
-					p=cuenta.nombre
+					b=cuenta.cuenta
 				.panel-body
-					table
+					table(class='table')
+						thead
+							tr
+								th Descripcion
+								th Monto
 						tbody
+								tr
+									td
+										b Total
+									td #{cuenta.total}
 							each entrada in cuenta.entradas
 								tr
 									td=entrada.descripcion
