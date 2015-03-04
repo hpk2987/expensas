@@ -7,14 +7,24 @@ var conv = require('../convertidor');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-	res.render('index');
+	
+	res.locals.expensas.getResumenHoy(function(resumen){
+		console.log(resumen);
+		res.render('index',{resumen: resumen});
+	});
 });
 
 router.get('/cuenta', function(req, res, next) {
-	res.locals.expensas.getEntradas(req.query.id,0,100,function(docs){
-		res.locals.expensas.getTotalCuenta(req.query.id,function(err,total){
-			res.render('cuenta',{ cuenta_actual:req.query.id,entradas:docs,total:total });
-		})
+	res.locals.expensas.getCuenta(req.query.id,function(err,cuentas){
+		res.locals.expensas.getEntradas(req.query.id,0,100,function(docs){
+			res.locals.expensas.getTotalCuenta(req.query.id,function(err,total){
+				res.render('cuenta',{ 
+					cuenta_actual:req.query.id,
+					modificador:cuentas[0].modificador,
+					entradas:docs,
+					total:total });
+			})
+		});
 	});
 });
 
@@ -62,12 +72,14 @@ router.post('/agregar_servicio', function(req, res, next) {
 /****************************/
 
 var agregarNuevaEntrada = function(resultado){
-	resultado.extra.expensas.agregarEntrada(
-		resultado.servicio.cuenta,
-		resultado.servicio.nombre,
-		resultado.importe,
-		function(err,newDocs){
-			resultado.extra.callback();
+	resultado.extra.expensas.getCuenta(resultado.servicio.cuenta,function(err,docs){
+		resultado.extra.expensas.agregarEntrada(
+			resultado.servicio.cuenta,
+			resultado.servicio.nombre,
+			resultado.importe*docs[0].modificador,
+			function(err,newDocs){
+				resultado.extra.callback();
+		});
 	});
 }
 

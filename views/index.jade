@@ -1,6 +1,20 @@
 extends layout
 
 block content
+	if resumen.cuentas.length > 0
+		each cuenta in resumen.cuentas
+			div(class='panel panel-default')
+				.panel-heading
+					p=cuenta.nombre
+				.panel-body
+					table
+						tbody
+							each entrada in cuenta.entradas
+								tr
+									td=entrada.descripcion
+									td=entrada.monto
+
+
 	form(class="form-inline",
 		action="/agregar_servicio",
 		method="POST")

@@ -55,6 +55,10 @@ Expensas.prototype.getCuentas = function(callback){
 	this.db.cuentas.find({},callback);
 }
 
+Expensas.prototype.getCuenta = function(id,callback){
+	this.db.cuentas.find({_id: id},callback);
+}
+
 Expensas.prototype.getTotalCuenta = function(idCuenta,callback){
 	this.db.entradas.find({ cuenta:idCuenta },function(err,docs){
 		if(callback){			
@@ -75,6 +79,60 @@ Expensas.prototype.getEntradas = function(idCuenta,offset,size,callback){
 					.limit(size).exec(function (err, docs) {
 		console.log("Entradas obtenidas:"+docs.length);
 		callback(docs);
+	});
+}
+
+Expensas.prototype.getEntradasHoy = function(idCuenta,callback){
+	var hoy = new Date();
+	hoy.setHours(0,0,0,0);
+
+	console.log("Entradas de hoy de:"+idCuenta);
+	this.db.entradas.find({ cuenta:idCuenta,secs: { $gt : hoy.getTime()  } })
+					.sort({ secs:-1 })
+					.exec(function (err, docs) {
+		console.log("Entradas obtenidas:"+docs.length);
+		callback(err,docs);
+	});
+}
+
+
+Expensas.prototype.getResumenHoy = function(callback){
+	var resumen = {
+		cuentas : [],
+		fecha: moment().format('DD/MM/YYYY')
+	}
+
+	var _this = this;
+	this.getCuentas(function(err,docs){
+		var funcs = [];
+		docs.forEach(function(cuenta){
+			funcs.push(function(){
+				_this.getEntradasHoy(cuenta._id,function(err,docs){
+					if(docs.length>0){
+						//Calcular total
+						var total=0;			
+						for(var i=0;i<docs.length;i++){
+							total += parseInt((docs[i].monto*10).toString());
+						}
+						
+						resumen.cuentas.push({
+							cuenta:cuenta.nombre,
+							entradas:docs,
+							total:total/10
+						});
+					}
+
+					if(funcs.length>0){
+						funcs.splice(0,1)[0]();
+					}else{
+						callback(resumen);
+					}
+				});
+			});
+		});
+		if(funcs.length>0){
+			funcs.splice(0,1)[0]();
+		}
 	});
 }
 
