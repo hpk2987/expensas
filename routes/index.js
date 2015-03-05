@@ -193,7 +193,7 @@ router.post('/cargar_pdf', function(req, res, next) {
         convertidor.convertir(files,__dirname + "/../files",function(filename){
         	console.log('Se genero pdf ' + filename + ' enviando...');
         	res.redirect('back');
-        })        
+        },res.locals.expensas)
     });
 });
 

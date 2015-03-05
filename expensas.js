@@ -147,7 +147,11 @@ Expensas.prototype.getServicio = function(tipo,cliente,callback){
 	};
 	
 	this.db.servicios.find(servicio,function(err,docs){
-		callback(docs[0]);
+		if(docs.length>0){
+			callback(docs[0]);
+		}else{
+			callback();
+		}
 	});
 }
 

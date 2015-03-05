@@ -9,8 +9,20 @@ var Convertidor= function(){
 
 exports.Convertidor = Convertidor;
 
-Convertidor.prototype.convertir = function(pdfs,temporal,callback){
+Convertidor.prototype.convertir = function(pdfs,temporal,callback,expensas){
 	var canvas = new Canvas(2479,3508)
+
+	var getPDFData = function(file,callback){
+		expensas.obtenerDatosPDF(file,function(resultado){
+			expensas.getServicio(resultado.tipo,resultado.cliente,function(servicio){
+				if(servicio){
+					callback(servicio.nombre);
+				}else{
+					callback();
+				}
+			});
+		});
+	}
 
 	var convertirPDF = function(pdfs,idx,imagenes){
 		var infile = pdfs.splice(0,1)[0];
@@ -20,13 +32,24 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 		exec(cmd, function (error, stdout, stderr) {
 			if ( error !== null ) {
 				throw(error);
-			}else{
-				imagenes.push(outfile);
+			}else{				
 				if(pdfs.length>0){
-					convertirPDF(pdfs,idx+1,imagenes);
+					getPDFData(infile,function(nombre){
+						imagenes.push({
+							nombre:nombre,
+							archivo:outfile
+						});
+						convertirPDF(pdfs,idx+1,imagenes);
+					});
 				}else{
-					var ctx = canvas.getContext('2d');
-					procesarImagen(imagenes,[],[],ctx);
+					getPDFData(infile,function(nombre){
+						imagenes.push({
+							nombre:nombre,
+							archivo:outfile
+						});
+						var ctx = canvas.getContext('2d');
+						procesarImagen(imagenes,[],[],ctx);
+					});
 				}
 			}
 		});
@@ -57,7 +80,7 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 		ctx.clearRect ( 0 , 0 , canvas.width, canvas.height );
 		stack.forEach(function(o,idx){
 			off = offsets[idx];
-			ctx.drawImage(o, 
+			ctx.drawImage(o.data,
 				off.sx,
 				off.sy,
 				off.sWidth,
@@ -66,6 +89,9 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 				off.dy,
 				off.dWidth,
 				off.dHeight);
+
+			ctx.font=off.text.font;
+			ctx.fillText(o.nombre, off.text.x,off.text.y);
 		});
     }
 
@@ -84,10 +110,13 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 
 	var procesarImagen = function(imagenes,stack,groups,ctx){
 		var imagen = imagenes.splice(0,1)[0];
-		fs.readFile(imagen, function(err, data) {
+		fs.readFile(imagen.archivo, function(err, data) {
 			var img = new Image();
 			img.src = data;
-			stack.push(img);
+			stack.push({
+				data:img,
+				nombre:imagen.nombre
+			});
 
 			if(stack.length<4 && imagenes.length >0){
 				procesarImagen(imagenes,stack,groups,ctx);
@@ -124,12 +153,15 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 }
 
 // TESTING =>
-//var conv = new Convertidor();
+/*var Expensas = require('./expensas');
+var expensas = new Expensas.Expensas("data.db");
+var conv = new Convertidor();
 
-/*var pdf="./carga_test/t1.pdf";
+var pdf="./carga_test/test.pdf";
 conv.convertir(
 	[pdf,pdf,pdf,pdf],
 	"./files",
 	function(filename){
 		console.log(filename);
-	});*/
+	},expensas);
+*/
