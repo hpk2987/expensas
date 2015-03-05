@@ -54,7 +54,7 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 
 	var dibujar = function(ctx,stack){
 		var offsets = JSON.parse(fs.readFileSync("offsets.json"));
-
+		ctx.clearRect ( 0 , 0 , canvas.width, canvas.height );
 		stack.forEach(function(o,idx){
 			off = offsets[idx];
 			ctx.drawImage(o, 
@@ -124,7 +124,7 @@ Convertidor.prototype.convertir = function(pdfs,temporal,callback){
 }
 
 // TESTING =>
-var conv = new Convertidor();
+//var conv = new Convertidor();
 
 /*var pdf="./carga_test/t1.pdf";
 conv.convertir(
