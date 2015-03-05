@@ -14,3 +14,26 @@ body{
 .dropzone_btns span{
 	margin-left: 2px;	
 }
+
+.service-icon:before{
+	margin-right: 3px;
+}
+
+/* VERICAL DIVIDER NAVBAR */
+.navbar .divider-vertical {
+height: 50px;
+margin: 0 9px;
+border-right: 1px solid #C2C2C2;
+border-left: 1px solid #FFF;
+}
+
+.navbar-inverse .divider-vertical {
+border-right-color: #222222;
+border-left-color: #111111;
+}
+
+@media (max-width: 767px) {
+.navbar-collapse .nav > .divider-vertical {
+    display: none;
+  }
+}

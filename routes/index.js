@@ -14,6 +14,39 @@ router.get('/', function(req, res, next) {
 	});
 });
 
+router.post('/eliminar_servicio', function(req, res, next) {
+	res.locals.expensas.eliminarServicio(req.body.id,function(){
+		res.redirect('back');
+	});
+});
+
+router.get('/servicio', function(req, res, next) {
+	
+	res.locals.expensas.getServicios(function(servicios){
+		var funcs = [];
+		servicios.forEach(function(servicio){
+			funcs.push(function(){
+				res.locals.expensas.getCuenta(servicio.cuenta,function(err,cuentas){
+					servicio.cuenta=cuentas[0];
+					if(funcs.length>0){
+						funcs.splice(0,1)[0]();
+					}else{
+						console.log(servicios);
+						res.render('servicio',{
+							servicio_route: 1,
+							servicios:servicios});
+					}
+				});
+			});
+			
+		});
+
+		if(funcs.length>0){
+			funcs.splice(0,1)[0]()
+		};
+	});
+});
+
 router.get('/cuenta', function(req, res, next) {
 	res.locals.expensas.getCuenta(req.query.id,function(err,cuentas){
 		res.locals.expensas.getEntradas(req.query.id,0,100,function(docs){
@@ -63,7 +96,7 @@ router.post('/agregar_servicio', function(req, res, next) {
 		req.body.cliente,
 		req.body.nombre,
 		function(newDocs){
-			res.redirect('/');
+			res.redirect('back');
 		});
 });
 

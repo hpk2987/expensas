@@ -151,6 +151,11 @@ Expensas.prototype.getServicio = function(tipo,cliente,callback){
 	});
 }
 
+Expensas.prototype.eliminarServicio = function(idServicio,callback){
+	console.log("Eliminando servicio :"+idServicio);
+	this.db.servicios.remove({ _id:idServicio },{},callback);
+}
+
 Expensas.prototype.getServicios = function(callback){
 	console.log("Obteniendo servicios");
 	this.db.servicios.find({}).exec(function (err, docs) {

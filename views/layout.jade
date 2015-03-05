@@ -43,10 +43,24 @@ html
 							.input-group
 								span.input-group-addon
 									span(class='glyphicon glyphicon-user')
-								input(class="form-control" type="text" name="nombre")
+								input(class="form-control" requiered type="text" name="nombre")
 								span.input-group-btn
 									button(class="btn btn-default", type="submit")
 										span(class="glyphicon glyphicon-plus")
+
+					ul(class='nav navbar-nav navbar-right')
+						if servicio_route
+							li.active
+								a(href='/servicio')
+									span(class='glyphicon glyphicon-wrench service-icon') Servicios
+
+						else
+							li
+								a(href='/servicio')
+									span(class='glyphicon glyphicon-wrench service-icon') Servicios
+
+						li.divider-vertical
+					
 
 			block content
     
