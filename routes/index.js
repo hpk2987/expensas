@@ -105,15 +105,20 @@ router.post('/agregar_servicio', function(req, res, next) {
 /****************************/
 
 var agregarNuevaEntrada = function(resultado){
-	resultado.extra.expensas.getCuenta(resultado.servicio.cuenta,function(err,docs){
-		resultado.extra.expensas.agregarEntrada(
-			resultado.servicio.cuenta,
-			resultado.servicio.nombre,
-			resultado.importe*docs[0].modificador,
-			function(err,newDocs){
-				resultado.extra.callback();
+	// Si no tiene servicio no se agrega entrada
+	if(resultado.servicio.cuenta){
+		resultado.extra.expensas.getCuenta(resultado.servicio.cuenta,function(err,docs){
+			resultado.extra.expensas.agregarEntrada(
+				resultado.servicio.cuenta,
+				resultado.servicio.nombre,
+				resultado.importe*docs[0].modificador,
+				function(err,newDocs){
+					resultado.extra.callback();
+			});
 		});
-	});
+	}else{
+		resultado.extra.callback("ERROR: {cliente:"+resultado.cliente+" , tipo:"+resultado.tipo+" no tiene cuenta asociada");
+	}
 }
 
 var renombrarArchivo = function(resultado){
