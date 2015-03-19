@@ -1,0 +1,50 @@
+extends layout
+
+block content
+
+	h4 Nuevo
+
+	form(class="form-inline",
+		action="/agregar_servicio",
+		method="POST")
+			label Tipo
+			input(class="form-control" , id="main-control" type='text', name='tipo', value='', placeholder='PAGO DE')
+			
+			label Cliente
+			input(class="form-control" , type='text', name='cliente', value='', placeholder='NRO CLIENTE')
+			
+			label Nombre
+			input(class="form-control" , type='text', name='nombre', value='', placeholder='Nombre a asignar')
+
+			label Cuenta
+			select(class="form-control" name="cuenta")
+					option(value='') Ninguna
+					each cuenta in cuentas
+						option(value=cuenta._id)=cuenta.nombre					
+
+			span.input-group.btn
+				button(class="btn btn-default")
+					span(class="glyphicon glyphicon-plus", type="submit")
+	hr
+	h4 Cargados
+	table.table
+		thead
+			tr
+				th Tipo
+				th Cliente
+				th Nombre
+				th Cuenta
+		tbody
+			each servicio in servicios
+				tr
+					td=servicio.tipo
+					td=servicio.cliente
+					td=servicio.nombre
+					if servicio.cuenta
+						td=servicio.cuenta.nombre
+					else
+						td Ninguna
+					td
+						form(action='/eliminar_servicio' method='POST' onSubmit="return confirm('Eliminar servicio?')")
+							input(type='hidden' name='id' value= servicio._id)
+							button(class="btn btn-default glyphicon glyphicon-minus" type="submit")
