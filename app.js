@@ -1,3 +1,4 @@
+var fs = require('fs');
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -12,7 +13,14 @@ var app = express();
 
 // Expensas ref
 var expensas = require('./expensas');
-app.locals.expensas = new expensas.Expensas('data.db');
+var serviceRoot = 'https://api.jsonbin.io/';
+var secretKey = fs.readFileSync('secret.txt','utf-8').trim();
+app.locals.expensas = new expensas.Expensas(
+    serviceRoot,
+    secretKey,
+    "5a4d282ba8fa173d86ad6842",
+    "5a4d2826a8fa173d86ad6840",
+    "5a4d27effa0fa33d7b634fe5");
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

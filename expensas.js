@@ -1,97 +1,171 @@
 var fs = require("fs");
 var Datastore = require('nedb');
 var moment = require('moment');
-var spindrift = require('spindrift');
+var PDFParser = require("pdf2json");
+var request = require('request');
+var shortid = require('shortid');
 
+var Expensas = function(serviceRoot,secretKey,cuentasId,entradasId,serviciosId){
+	console.log("=== Valores de arranque ===");
+	console.log("secretKey	=> " + secretKey);
+	console.log("cuentasId 	=> " + cuentasId);
+	console.log("entradasId 	=> " + entradasId);
+	console.log("serviciosId 	=> " + serviciosId);
 
-var Expensas = function(dbname,inMemory){
-	this.file = dbname;
-	this.file2 = "entradas."+dbname;
-	this.file3 = "servicios."+dbname;
-	console.log("Arrancando desde: " +dbname);
-	this.db = {};
-
-	if(inMemory){
-		this.db.cuentas = new Datastore({ inMemoryOnly:true });
-		this.db.entradas = new Datastore({ inMemoryOnly:true });
-		this.db.servicios = new Datastore({ inMemoryOnly:true });
-	}else{
-		this.db.cuentas = new Datastore({ filename: this.file, autoload: true });
-		this.db.entradas = new Datastore({ filename: this.file2, autoload: true });
-		this.db.servicios = new Datastore({ filename: this.file3, autoload: true });
-	}
+	this.secretKey = secretKey;
+	this.cuentasId = cuentasId;
+	this.entradasId = entradasId;
+	this.serviciosId = serviciosId;
+	this.serviceRoot=serviceRoot;
 }
 
 exports.Expensas = Expensas;
 
-Expensas.prototype.agregarCuenta = function(nombre,callback){
-	var cuenta = {nombre:nombre};
-	console.log("Agregando cuenta nombre:"+JSON.stringify(cuenta));
-	this.db.cuentas.insert(cuenta,callback);
+/* =================================================================== */
+/* =================================================================== */
+/* Bucket ops */
+/* =================================================================== */
+
+Expensas.prototype.getBucket = function(bucketId,callback){
+	var options = {
+		baseUrl: this.serviceRoot,
+		url: bucketId,
+		method: "GET",
+		headers:{
+			'secret-key': this.secretKey
+		}
+	}
+
+	request(options,function(error,response,body){
+		if(error!=null){
+			console.error(error);
+		}else{
+			callback(JSON.parse(body));
+		}
+	});
 }
 
-Expensas.prototype.agregarEntrada = function(idCuenta,descripcion,monto,callback){
-	var entrada = { 
-		cuenta:idCuenta, 
-		descripcion:descripcion,
-		monto:parseFloat(monto),
-		fecha:moment().format('DD/MM/YYYY'),
-		secs:new Date().getTime()};
-	console.log("Agregando entrada:"+JSON.stringify(entrada));
-	this.db.entradas.insert(entrada,callback);
+Expensas.prototype.storeBucket = function(bucketId,data,callback){
+	var options = {
+		baseUrl: this.serviceRoot,
+		url: bucketId,		
+		method: "PUT",
+		headers:{
+			'content-type':'application/json',
+			'secret-key': this.secretKeys
+		},
+		body: JSON.stringify(data)
+	}
+
+	request(options,function(error,response,body){
+		if(error!=null){
+			console.error(error);
+		}else{
+			callback();
+		}
+	});
 }
 
-Expensas.prototype.eliminarEntrada = function(idEntrada,callback){
-	console.log("Eliminando entrada: "+idEntrada);
-	this.db.entradas.remove({ _id:idEntrada },{},callback);
+/* =================================================================== */
+/* =================================================================== */
+/* Expensas ops */
+/* =================================================================== */7
+
+Expensas.prototype.getCuentas = function(callback){
+	this.getBucket(this.cuentasId+"/latest",function(cuentas){
+		callback(cuentas);
+	});
+}
+
+Expensas.prototype.agregarCuenta = function(nombre,callback){	
+	this.getCuentas(function(cuentas){
+		var cuenta = {
+			id: shortid.generate(),
+			nombre:nombre
+		};
+
+		cuentas.push_back(cuenta);
+		this.storeBucket(this.cuentasId,cuentas,callback);
+	});	
 }
 
 Expensas.prototype.eliminarCuenta = function(idCuenta,callback){
 	console.log("Eliminando cuenta :"+idCuenta);
-	this.db.cuentas.remove({ _id:idCuenta },{},callback);
-}
-
-Expensas.prototype.getCuentas = function(callback){
-	this.db.cuentas.find({},callback);
+	this.getCuentas(function(cuentas){
+		var cuenta = cuentas.find(function(e){ return e.id===idCuenta; });
+		if(cuenta!=null){
+			cuentas.splice(index, 1);
+			this.storeBucket(this.cuentasId,cuentas,callback);
+		}
+	});
 }
 
 Expensas.prototype.getCuenta = function(id,callback){
-	this.db.cuentas.find({_id: id},callback);
-}
-
-Expensas.prototype.getTotalCuenta = function(idCuenta,callback){
-	this.db.entradas.find({ cuenta:idCuenta },function(err,docs){
-		if(callback){			
-			var total=0;			
-			for(var i=0;i<docs.length;i++){
-				total += parseInt((docs[i].monto*10).toString());
-			}
-			callback(err,total/10);
-		}
+	this.getCuentas(function(cuentas){
+		callback(cuentas.find(function(e){ return e.id === id; }));
 	});
 }
 
 Expensas.prototype.getEntradas = function(idCuenta,offset,size,callback){
 	console.log("Entradas de:"+idCuenta+" | offset:"+offset+" | size:"+size);
-	this.db.entradas.find({ cuenta:idCuenta })
-					.sort({ secs:-1 })
-					.skip(offset)
-					.limit(size).exec(function (err, docs) {
-		console.log("Entradas obtenidas:"+docs.length);
-		callback(docs);
+	this.getBucket(this.entradasId+"/latest",function(entradas){
+		var ret = entradas
+			.filter(function(e){ return e.cuenta === idCuenta; });
+		callback(ret.slice(offset,offset+limit));
+	});
+}
+
+Expensas.prototype.agregarEntrada = function(idCuenta,descripcion,monto,callback){
+	this.getEntradas(function(entradas){
+		var entrada = { 
+			id: shortid.generate(),
+			cuenta:idCuenta, 
+			descripcion:descripcion,
+			monto:parseFloat(monto),
+			fecha:moment().format('DD/MM/YYYY'),
+			secs:new Date().getTime()
+		};
+
+		console.log("Agregando entrada:"+JSON.stringify(entrada));
+		entradas.push_back(entrada);
+		this.storeBucket(this.entradasId,entradas,callback);
+	});	
+}
+
+Expensas.prototype.eliminarEntrada = function(idEntrada,callback){
+	console.log("Eliminando entrada: "+idEntrada);
+	this.getEntradas(function(entradas){
+		var entrada = entradas.find(function(e){ return e.id===idEntrada; });
+		if(entrada!=null){
+			entradas.splice(index, 1);
+			this.storeBucket(this.entradasId,entradas,callback);
+		}
+	});
+}
+
+Expensas.prototype.getTotalCuenta = function(idCuenta,callback){
+	this.getEntradas(function(entradas){
+		var total = entradas
+			.filter(function(e){ return e.cuenta === idCuenta; })
+			.reduce(function(acum,current){ return acum + current; });
+		if(callback){
+			callback(err,total/10);
+		}
 	});
 }
 
 Expensas.prototype.getEntradasHoy = function(idCuenta,callback){
-	var hoy = new Date();
-	hoy.setHours(0,0,0,0);
+	var hoy = moment().format('DD/MM/YYYY');
 
 	console.log("Entradas de hoy de:"+idCuenta);
-	this.db.entradas.find({ cuenta:idCuenta,secs: { $gt : hoy.getTime()  } })
-					.sort({ secs:-1 })
-					.exec(function (err, docs) {
-		console.log("Entradas obtenidas:"+docs.length);
-		callback(err,docs);
+
+	this.getEntradas(function(entradas){
+		var ret = entradas
+			.filter(function(e){ 
+				return 	(e.cuenta === idCuenta) &&
+						(e.fecha === hoy) });
+		
+		callback(ret);
 	});
 }
 
@@ -103,21 +177,22 @@ Expensas.prototype.getResumenHoy = function(callback){
 	}
 
 	var _this = this;
-	this.getCuentas(function(err,docs){
+	this.getCuentas(function(cuentas){
 		var funcs = [];
-		docs.forEach(function(cuenta){
+		console.log(cuentas);
+		cuentas.forEach(function(cuenta){
 			funcs.push(function(){
-				_this.getEntradasHoy(cuenta._id,function(err,docs){
-					if(docs.length>0){
+				_this.getEntradasHoy(cuenta._id,function(entradas){
+					if(entradas.length>0){
 						//Calcular total
 						var total=0;			
-						for(var i=0;i<docs.length;i++){
-							total += parseInt((docs[i].monto*10).toString());
+						for(var i=0;i<entradas.length;i++){
+							total += parseInt((entradas[i].monto*10).toString());
 						}
 						
 						resumen.cuentas.push({
 							cuenta:cuenta.nombre,
-							entradas:docs,
+							entradas:entradas,
 							total:total/10
 						});
 					}
@@ -137,7 +212,17 @@ Expensas.prototype.getResumenHoy = function(callback){
 }
 
 Expensas.prototype.countEntradas = function(idCuenta,callback){
-	this.db.entradas.count({ cuenta:idCuenta } ,callback);
+	this.getEntradas(idCuenta,function(entradas){
+		callback(entradas.length);
+	});
+}
+
+Expensas.prototype.getServicios = function(callback){
+	console.log("Obteniendo servicios");
+	this.getBucket(this.serviciosId+"/latest",function(servicios){
+		console.log("Servicios obtenidas:"+servicios.length);
+		callback(servicios);
+	})
 }
 
 Expensas.prototype.getServicio = function(tipo,cliente,callback){
@@ -146,201 +231,132 @@ Expensas.prototype.getServicio = function(tipo,cliente,callback){
 		cliente: cliente
 	};
 	
-	this.db.servicios.find(servicio,function(err,docs){
-		if(docs.length>0){
-			callback(docs[0]);
-		}else{
-			callback();
-		}
+	this.getServicios(function(servicios){
+		var servicio = servicios.filter(function(e){
+			return 	(e.tipo === tipo) && 
+					(e.cliente===cliente);
+		});
+		callback(servicio);
 	});
 }
 
 Expensas.prototype.eliminarServicio = function(idServicio,callback){
 	console.log("Eliminando servicio :"+idServicio);
-	this.db.servicios.remove({ _id:idServicio },{},callback);
-}
-
-Expensas.prototype.getServicios = function(callback){
-	console.log("Obteniendo servicios");
-	this.db.servicios.find({}).exec(function (err, docs) {
-		console.log("Servicios obtenidas:"+docs.length);
-		callback(docs);
+	
+	this.getServicios(function(servicios){
+		var servicio = servicios.find(function(e){ return e.id===idServicio; });
+		if(servicio!=null){
+			servicios.splice(index, 1);
+			this.storeBucket(this.serviciosId,servicios,callback);
+		}
 	});
 }
 
 Expensas.prototype.agregarServicio = function(cuenta,tipo,cliente,nombre,callback){
-	var servicio = { 
-		cuenta:cuenta,
-		tipo:tipo, 
-		cliente:cliente,
-		nombre:nombre};
-
 	console.log("Intentando agregar: " + JSON.stringify(servicio));
-	this.db.servicios.update(servicio,servicio,{ upsert:true },function(err,numReplaced,docs){
-		if(docs){
-			console.log("Agregando servicio:"+JSON.stringify(docs));
-		}
-		callback(docs);
+	this.getServicios(function(servicios){		
+		var servicio = {
+			id: shortid.generate(),
+			cuenta:cuenta,
+			tipo:tipo, 
+			cliente:cliente,
+			nombre:nombre
+		};
+		console.log("Agregando servicio:"+JSON.stringify(docs));
+
+		servicios.push_back(servicio);
+		this.storeBucket(this.serviciosId,servicios,callback);
 	});
 }
 
+/* =================================================================== */
+/* =================================================================== */
+/* PDF ops */
+/* =================================================================== */
+
 Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
-	var pdf = spindrift(archivo);
+	var pdfParser = new PDFParser();
 	
-	var resultado = {
-		demorados:[],
-
-		completo:function(){
-			return (this.tipo!=null && this.cliente!=null && this.importe!=null);
+	var resultado = {};
+	var operaciones = {
+		completo:function(resultado){
+			return (resultado.tipo!=null && resultado.cliente!=null && resultado.importe!=null);
 		},
-
-		ejecutarDemorados:function(valor){
-			var local = this;
-			this.demorados.forEach(function(f){
-				f(valor,local);
-			});
-			this.demorados=[];
-		},
-
-		esAttr:function(valor,regexp1,regexp2,func,relay){
-			if(this[relay]){
-				this.ejecutarDemorados(valor);
-				this[relay]=undefined;
-				return false;
-			}
-
-			if(valor!=null && valor.match(regexp1)){
-				this[relay]=true;
-				this.demorados.push(func);
-			}else{
-				return valor==null?false:valor.match(regexp2);
-			}
-		},
-
 
 		esTipo:function(valor){
-			return this.esAttr(valor,/^PAGO DE:$/,/^PAGO DE .*$/,this.cargarTipo,'siguienteEsTipo');
+			return valor.match(/^PAGO DE/)!==null;
 		},
 
 		esCliente:function(valor){
-			return this.esAttr(valor,/^NRO.DE CLIENTE:$/,/^NRO. DE CLIENTE:.*$/,this.cargarCliente,'siguienteEsCliente');
+			return valor.match(/^NRO.[ ]?DE CLIENTE/)!==null;
 		},
 
 		esImporte:function(valor){
-			return this.esAttr(valor,/^IMPORTE:$/,/^IMPORTE: .*$/,this.cargarImporte,'siguienteEsImporte');
+			return valor.match(/^IMPORTE:/)!==null;
 		},
 
-		cargarImporte:function(valor,obj){
-			if(obj){
-				obj.importe=parseFloat(valor.replace(',','.').replace('$',''));
-			}else{
-				this.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));
-			}
+		cargarTipo:function(resultado,valor){
+			resultado.tipo=valor.substr(8);
 		},
 
-		cargarCliente:function(valor,obj){
-			if(obj){
-				obj.cliente=valor;
-			}else{
-				this.cliente=valor.substr(valor.indexOf(':')+2);
-			}
+		cargarImporte:function(resultado,valor){
+			resultado.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));
 		},
 
-		cargarTipo:function(valor,obj){
-			if(obj){
-				obj.tipo=valor;
-			}else{
-				this.tipo=valor.substr(8);
-			}
-		}
+		cargarCliente:function(resultado,valor){
+			resultado.cliente=valor.substr(valor.indexOf(':')+2);
+		},
 	};
 
 	var ignore=false;
 	resultado.archivo = archivo;
 	resultado.extra = extra;
-	pdf.contentStream().on('data', function(data){
-		if(data.type=="string"){
 
-			if(resultado.esTipo(data.string)){
-				// TIPO
-				resultado.cargarTipo(data.string);
+	pdfParser.on("pdfParser_dataError", errData => console.error(errData.parserError) );
+    
+    pdfParser.on("pdfParser_dataReady", pdfData => {
+		// Son comprobantes siempre tienen una sola pagina
+		var textos = pdfData.formImage.Pages[0].Texts;
+
+		for (var i = 0; i < textos.length; i++) {
+			var texto = decodeURIComponent(textos[i].R[0].T);
+			
+			//console.log(texto);
+		    
+		    if(operaciones.esTipo(texto)){
+	    		operaciones.cargarTipo(resultado,texto);
 			}
 
-			if(resultado.esCliente(data.string)){
+			if(operaciones.esCliente(texto)){
 				// CLIENTE
-				resultado.cargarCliente(data.string);
+				operaciones.cargarCliente(resultado,texto);
 			}
 
-			if(resultado.esImporte(data.string)){
+			if(operaciones.esImporte(texto)){
 				// IMPORTE
-				resultado.cargarImporte(data.string);
+				operaciones.cargarImporte(resultado,texto);
 			}
 
-			if(!ignore && resultado.completo()){
-				callback(resultado);
-				ignore=true;
+			if(operaciones.completo(resultado)){
+				break;				
 			}
 		}
-	});
-	
-}
 
-/*function entrenar(){
-	
-	var myExp = new Expensas("test.db");
-
-	var exludes = [
-		'LinkPagos-ABL-Nazarre3187-04-06-2013.pdf',
-		'LinkPagos-ABL-casa-C5-11-05-2013.pdf',
-		'LinkPagos-Edenor-casa-26-05-2013.pdf',
-		'LinkPagos-Metrogas-casa-04-06-2013.pdf',
-		'LinkPagos-Patente-Peugeot-04-06-2013.pdf',
-		'LinkPagos-Patente-Tiguan-04-06-2013.pdf',
-		'LinkPagos-Personal-Alfredo-11-05-2013.pdf',
-		'LinkPagos-Telecom-casa-11-05-2013.pdf',
-		'LinkPagos-Telecom-casa-19-05-2013.pdf'];
-
-	var dir = '/Volumes/Publico/Pagos';
-	// Read the isDirectory
-	fs.readdir(dir, function (err, list) {
-		// For every file in the list
-		var main;
-		var functions = [];
-		list.forEach(function (file) {
-			// Full path of that file
-			var path = dir + "/" + file;
-			var regexp = /^LinkPagos-([^-]*-[^-]*)-[0-9]{2}-[0-9]{2}-[0-9]{4}\.pdf$/g;
-			var match = regexp.exec(file);
-			if(match && exludes.indexOf(file)==-1){
-				var funct = function(){
-					myExp.obtenerDatosPDF(path,function(data){
-						myExp.agregarNombreServicio(data.tipo,data.cliente,match[1],function(err,entry){
-							functions.splice(0,1)[0]();
-							console.log(functions.length);
-						});
-					});
-				};
-
-				console.log(file + " | " + functions.length);
-				functions.push(funct);
-			}
-		});
-		functions.push(function(){
-			console.log("Funcion final");
-			myExp.getServicios(function(docs){
-				console.log(docs);
-			});
-		});
-		functions.splice(0,1)[0]();
+		if(!operaciones.completo(resultado)){
+			console.error("=ERROR= No se completo el resultado => " + JSON.stringify(resultado));
+		}else{
+			callback(resultado);     
+		}
     });
+ 
+    pdfParser.loadPDF(archivo);
 }
 
-entrenar();*/
 
 /*function pdfTest(){
 	var myExp = new Expensas("test.db",true);
 
-	myExp.obtenerDatosPDF('test.pdf',function(data){
+	myExp.obtenerDatosPDF('prueba.pdf',function(data){
 		console.log(data);
 	});
 }*/

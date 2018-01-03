@@ -18,8 +18,10 @@
     "moment": "^2.9.0",
     "morgan": "~1.5.1",
     "nedb": "^1.1.1",
+    "pdf2json": "^1.1.7",
     "pdfkit": "^0.7.0",
+    "request": "^2.83.0",
     "serve-favicon": "~2.2.0",
-    "spindrift": "0.0.6"
+    "shortid": "^2.2.8"
   }
 }
