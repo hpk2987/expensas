@@ -27,13 +27,13 @@ html
 				<!-- Collect the nav links, forms, and other content for toggling -->
 				div(class='collapse navbar-collapse' id='navbar-collapse')
 					ul(class='nav navbar-nav')
-						each cuenta in cuentas
-							if cuenta._id == cuenta_actual
+						each cuenta in cuentas							
+							if cuenta.id == cuenta_actual
 								li.active
-									a(href='/cuenta?id='+cuenta._id)= cuenta.nombre
+									a(href="/cuenta?id="+cuenta.id)= cuenta.nombre
 							else
 								li
-									a(href='/cuenta?id='+cuenta._id)= cuenta.nombre
+									a(href="/cuenta?id="+cuenta.id)= cuenta.nombre
 
 					form(	class="navbar-form navbar-right"
 							action="/agregar_cuenta"

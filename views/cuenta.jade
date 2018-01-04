@@ -52,6 +52,6 @@ block content
 							td= entrada.monto
 							td
 								form(action='/eliminar_entrada' method='POST' onSubmit="return confirm('Eliminar entrada?')")
-									input(type='hidden' name='id' value= entrada._id)
+									input(type='hidden' name='id' value= entrada.id)
 									input(type='hidden' name='cuenta_id' value= cuenta_actual)
 									button(class="btn btn-default glyphicon glyphicon-minus" type="submit")

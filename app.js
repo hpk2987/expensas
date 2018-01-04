@@ -13,7 +13,7 @@ var app = express();
 
 // Expensas ref
 var expensas = require('./expensas');
-var serviceRoot = 'https://api.jsonbin.io/';
+var serviceRoot = 'https://api.jsonbin.io/b/';
 var secretKey = fs.readFileSync('secret.txt','utf-8').trim();
 app.locals.expensas = new expensas.Expensas(
     serviceRoot,
@@ -39,10 +39,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Cargar cuentas para las vistas
 app.use(function(req, res, next) {
-    app.locals.expensas.getCuentas(function(err,docs){
-        res.locals.cuentas = docs;
+    app.locals.expensas.getCuentas(function(cuentas){
+        res.locals.cuentas = cuentas;
         res.locals.expensas = app.locals.expensas;
-        console.log("Cuentas:"+JSON.stringify(docs))
         next();
     });
 });

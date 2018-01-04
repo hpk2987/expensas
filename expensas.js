@@ -28,36 +28,41 @@ exports.Expensas = Expensas;
 
 Expensas.prototype.getBucket = function(bucketId,callback){
 	var options = {
-		baseUrl: this.serviceRoot,
-		url: bucketId,
+		url: this.serviceRoot+bucketId,
 		method: "GET",
 		headers:{
 			'secret-key': this.secretKey
 		}
 	}
 
+	console.log("=GET= " + this.serviceRoot+bucketId);
 	request(options,function(error,response,body){
+		console.log("=RESPUESTA GET= "  + body);
 		if(error!=null){
 			console.error(error);
 		}else{
-			callback(JSON.parse(body));
+			callback(JSON.parse(body).data);
 		}
 	});
 }
 
 Expensas.prototype.storeBucket = function(bucketId,data,callback){
 	var options = {
-		baseUrl: this.serviceRoot,
-		url: bucketId,		
+		url: this.serviceRoot+bucketId,
 		method: "PUT",
 		headers:{
 			'content-type':'application/json',
-			'secret-key': this.secretKeys
+			'secret-key': this.secretKey
 		},
-		body: JSON.stringify(data)
+		body: JSON.stringify({
+			data: data,
+			date: moment().format('DD/MM/YYYY')
+		})
 	}
 
+	console.log("=PUT= " + this.serviceRoot+bucketId + " | DATA => " + options.body);
 	request(options,function(error,response,body){
+		console.log("=RESPUESTA PUT= "  + body);
 		if(error!=null){
 			console.error(error);
 		}else{
@@ -71,51 +76,22 @@ Expensas.prototype.storeBucket = function(bucketId,data,callback){
 /* Expensas ops */
 /* =================================================================== */7
 
-Expensas.prototype.getCuentas = function(callback){
-	this.getBucket(this.cuentasId+"/latest",function(cuentas){
-		callback(cuentas);
+Expensas.prototype.getEntradas= function(callback){
+	this.getBucket(this.entradasId+"/latest",function(entradas){
+		callback(entradas);
 	});
 }
 
-Expensas.prototype.agregarCuenta = function(nombre,callback){	
-	this.getCuentas(function(cuentas){
-		var cuenta = {
-			id: shortid.generate(),
-			nombre:nombre
-		};
-
-		cuentas.push_back(cuenta);
-		this.storeBucket(this.cuentasId,cuentas,callback);
-	});	
-}
-
-Expensas.prototype.eliminarCuenta = function(idCuenta,callback){
-	console.log("Eliminando cuenta :"+idCuenta);
-	this.getCuentas(function(cuentas){
-		var cuenta = cuentas.find(function(e){ return e.id===idCuenta; });
-		if(cuenta!=null){
-			cuentas.splice(index, 1);
-			this.storeBucket(this.cuentasId,cuentas,callback);
-		}
-	});
-}
-
-Expensas.prototype.getCuenta = function(id,callback){
-	this.getCuentas(function(cuentas){
-		callback(cuentas.find(function(e){ return e.id === id; }));
-	});
-}
-
-Expensas.prototype.getEntradas = function(idCuenta,offset,size,callback){
-	console.log("Entradas de:"+idCuenta+" | offset:"+offset+" | size:"+size);
+Expensas.prototype.getEntradasDeCuenta = function(idCuenta,offset,size,callback){
 	this.getBucket(this.entradasId+"/latest",function(entradas){
 		var ret = entradas
 			.filter(function(e){ return e.cuenta === idCuenta; });
-		callback(ret.slice(offset,offset+limit));
+		callback(ret.slice(offset,offset+size));
 	});
 }
 
 Expensas.prototype.agregarEntrada = function(idCuenta,descripcion,monto,callback){
+	_this = this;
 	this.getEntradas(function(entradas){
 		var entrada = { 
 			id: shortid.generate(),
@@ -126,30 +102,69 @@ Expensas.prototype.agregarEntrada = function(idCuenta,descripcion,monto,callback
 			secs:new Date().getTime()
 		};
 
-		console.log("Agregando entrada:"+JSON.stringify(entrada));
-		entradas.push_back(entrada);
-		this.storeBucket(this.entradasId,entradas,callback);
+		entradas.push(entrada);
+		_this.storeBucket(_this.entradasId,entradas,function(){
+			callback(entrada);
+		});
 	});	
 }
 
 Expensas.prototype.eliminarEntrada = function(idEntrada,callback){
-	console.log("Eliminando entrada: "+idEntrada);
+	_this = this;
 	this.getEntradas(function(entradas){
-		var entrada = entradas.find(function(e){ return e.id===idEntrada; });
-		if(entrada!=null){
-			entradas.splice(index, 1);
-			this.storeBucket(this.entradasId,entradas,callback);
-		}
+		entradas = entradas.filter(function(e){ return e.id!=idEntrada; });		
+		_this.storeBucket(_this.entradasId,entradas,callback);
+	});
+}
+
+Expensas.prototype.getCuentas = function(callback){
+	this.getBucket(this.cuentasId+"/latest",function(cuentas){
+		callback(cuentas);
+	});
+}
+
+Expensas.prototype.agregarCuenta = function(nombre,callback){	
+	_this = this;
+	this.getCuentas(function(cuentas){
+		var cuenta = {
+			id: shortid.generate(),
+			nombre:nombre
+		};
+
+		cuentas.push(cuenta);
+		_this.storeBucket(_this.cuentasId,cuentas,function(){
+			callback(cuenta);
+		});
+	});	
+}
+
+Expensas.prototype.eliminarCuenta = function(idCuenta,callback){
+	_this = this;
+	this.getCuentas(function(cuentas){
+		cuenta = cuentas.filter(function(e){ return e.id!=idCuenta; });
+		_this.storeBucket(_this.cuentasId,cuentas,callback);
+	});
+}
+
+Expensas.prototype.getCuenta = function(id,callback){
+	this.getCuentas(function(cuentas){
+		callback(cuentas.find(function(e){ return e.id === id; }));
 	});
 }
 
 Expensas.prototype.getTotalCuenta = function(idCuenta,callback){
 	this.getEntradas(function(entradas){
-		var total = entradas
-			.filter(function(e){ return e.cuenta === idCuenta; })
-			.reduce(function(acum,current){ return acum + current; });
+		var total = 0;
+		if(entradas.length!=0){
+			total = entradas			
+				.filter(function(e){ return e.cuenta === idCuenta; })
+				.map(function(e){ return e.monto; })
+				.reduce(function(acum,current){ return acum + current; });
+		}
+
+
 		if(callback){
-			callback(err,total/10);
+			callback(total);
 		}
 	});
 }
@@ -157,13 +172,10 @@ Expensas.prototype.getTotalCuenta = function(idCuenta,callback){
 Expensas.prototype.getEntradasHoy = function(idCuenta,callback){
 	var hoy = moment().format('DD/MM/YYYY');
 
-	console.log("Entradas de hoy de:"+idCuenta);
-
-	this.getEntradas(function(entradas){
+	this.getEntradasDeCuenta(idCuenta,0,100,function(entradas){
 		var ret = entradas
 			.filter(function(e){ 
-				return 	(e.cuenta === idCuenta) &&
-						(e.fecha === hoy) });
+				return 	(e.fecha === hoy) });
 		
 		callback(ret);
 	});
@@ -179,10 +191,9 @@ Expensas.prototype.getResumenHoy = function(callback){
 	var _this = this;
 	this.getCuentas(function(cuentas){
 		var funcs = [];
-		console.log(cuentas);
 		cuentas.forEach(function(cuenta){
 			funcs.push(function(){
-				_this.getEntradasHoy(cuenta._id,function(entradas){
+				_this.getEntradasHoy(cuenta.id,function(entradas){
 					if(entradas.length>0){
 						//Calcular total
 						var total=0;			
@@ -199,7 +210,7 @@ Expensas.prototype.getResumenHoy = function(callback){
 
 					if(funcs.length>0){
 						funcs.splice(0,1)[0]();
-					}else{
+					}else{						
 						callback(resumen);
 					}
 				});
@@ -218,9 +229,7 @@ Expensas.prototype.countEntradas = function(idCuenta,callback){
 }
 
 Expensas.prototype.getServicios = function(callback){
-	console.log("Obteniendo servicios");
 	this.getBucket(this.serviciosId+"/latest",function(servicios){
-		console.log("Servicios obtenidas:"+servicios.length);
 		callback(servicios);
 	})
 }
@@ -241,19 +250,15 @@ Expensas.prototype.getServicio = function(tipo,cliente,callback){
 }
 
 Expensas.prototype.eliminarServicio = function(idServicio,callback){
-	console.log("Eliminando servicio :"+idServicio);
-	
+	_this = this;
 	this.getServicios(function(servicios){
-		var servicio = servicios.find(function(e){ return e.id===idServicio; });
-		if(servicio!=null){
-			servicios.splice(index, 1);
-			this.storeBucket(this.serviciosId,servicios,callback);
-		}
+		servicios = servicios.find(function(e){ return e.id!=idServicio; });
+		_this.storeBucket(_this.serviciosId,servicios,callback);
 	});
 }
 
 Expensas.prototype.agregarServicio = function(cuenta,tipo,cliente,nombre,callback){
-	console.log("Intentando agregar: " + JSON.stringify(servicio));
+	_this = this;
 	this.getServicios(function(servicios){		
 		var servicio = {
 			id: shortid.generate(),
@@ -262,10 +267,10 @@ Expensas.prototype.agregarServicio = function(cuenta,tipo,cliente,nombre,callbac
 			cliente:cliente,
 			nombre:nombre
 		};
-		console.log("Agregando servicio:"+JSON.stringify(docs));
-
-		servicios.push_back(servicio);
-		this.storeBucket(this.serviciosId,servicios,callback);
+		servicios.push(servicio);
+		_this.storeBucket(_this.serviciosId,servicios,function(){
+			callback(servicio);
+		});
 	});
 }
 
@@ -277,10 +282,12 @@ Expensas.prototype.agregarServicio = function(cuenta,tipo,cliente,nombre,callbac
 Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 	var pdfParser = new PDFParser();
 	
-	var resultado = {};
+	var resultado = {
+		datos:{}
+	};
 	var operaciones = {
 		completo:function(resultado){
-			return (resultado.tipo!=null && resultado.cliente!=null && resultado.importe!=null);
+			return (resultado.datos.tipo!=null && resultado.datos.cliente!=null && resultado.datos.importe!=null);
 		},
 
 		esTipo:function(valor){
@@ -296,15 +303,15 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		},
 
 		cargarTipo:function(resultado,valor){
-			resultado.tipo=valor.substr(8);
+			resultado.datos.tipo=valor.substr(8);
 		},
 
 		cargarImporte:function(resultado,valor){
-			resultado.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));
+			resultado.datos.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));
 		},
 
 		cargarCliente:function(resultado,valor){
-			resultado.cliente=valor.substr(valor.indexOf(':')+2);
+			resultado.datos.cliente=valor.substr(valor.indexOf(':')+2);
 		},
 	};
 
@@ -319,9 +326,7 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		var textos = pdfData.formImage.Pages[0].Texts;
 
 		for (var i = 0; i < textos.length; i++) {
-			var texto = decodeURIComponent(textos[i].R[0].T);
-			
-			//console.log(texto);
+			var texto = decodeURIComponent(textos[i].R[0].T);		
 		    
 		    if(operaciones.esTipo(texto)){
 	    		operaciones.cargarTipo(resultado,texto);
@@ -342,11 +347,12 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 			}
 		}
 
-		if(!operaciones.completo(resultado)){
+		resultado.completo=operaciones.completo(resultado);
+		if(!resultado.completo){
 			console.error("=ERROR= No se completo el resultado => " + JSON.stringify(resultado));
-		}else{
-			callback(resultado);     
 		}
+
+		callback(resultado);
     });
  
     pdfParser.loadPDF(archivo);

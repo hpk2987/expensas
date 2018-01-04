@@ -20,7 +20,7 @@ block content
 			select(class="form-control" name="cuenta")
 					option(value='') Ninguna
 					each cuenta in cuentas
-						option(value=cuenta._id)=cuenta.nombre					
+						option(value=cuenta.id)=cuenta.nombre					
 
 			span.input-group.btn
 				button(class="btn btn-default")
@@ -46,5 +46,5 @@ block content
 						td Ninguna
 					td
 						form(action='/eliminar_servicio' method='POST' onSubmit="return confirm('Eliminar servicio?')")
-							input(type='hidden' name='id' value= servicio._id)
+							input(type='hidden' name='id' value= servicio.id)
 							button(class="btn btn-default glyphicon glyphicon-minus" type="submit")

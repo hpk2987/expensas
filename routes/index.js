@@ -5,18 +5,30 @@ var busboy = require('connect-busboy');
 var moment = require('moment');
 var conv = require('../convertidor');
 
-/* GET home page. */
+
+/* =================================================================== */
+/* =================================================================== */
+/* View routes */
+/* =================================================================== */
+
 router.get('/', function(req, res, next) {
 	
-	res.locals.expensas.getResumenHoy(function(resumen){
-		console.log(resumen);
+	res.locals.expensas.getResumenHoy(function(resumen){		
 		res.render('index',{resumen: resumen});
 	});
 });
 
-router.post('/eliminar_servicio', function(req, res, next) {
-	res.locals.expensas.eliminarServicio(req.body.id,function(){
-		res.redirect('back');
+router.get('/cuenta', function(req, res, next) {
+	res.locals.expensas.getCuenta(req.query.id,function(cuenta){
+		res.locals.expensas.getEntradasDeCuenta(req.query.id,0,100,function(entradas){
+			res.locals.expensas.getTotalCuenta(req.query.id,function(total){
+				res.render('cuenta',{ 
+					cuenta_actual:req.query.id,
+					modificador:cuenta.modificador,
+					entradas:entradas,
+					total:total });
+			})
+		});
 	});
 });
 
@@ -26,8 +38,8 @@ router.get('/servicio', function(req, res, next) {
 		var funcs = [];
 		servicios.forEach(function(servicio){
 			funcs.push(function(){
-				res.locals.expensas.getCuenta(servicio.cuenta,function(err,cuentas){
-					servicio.cuenta=cuentas[0];
+				res.locals.expensas.getCuenta(servicio.cuenta,function(cuenta){
+					servicio.cuenta=cuenta;
 					if(funcs.length>0){
 						funcs.splice(0,1)[0]();
 					}else{
@@ -43,21 +55,22 @@ router.get('/servicio', function(req, res, next) {
 
 		if(funcs.length>0){
 			funcs.splice(0,1)[0]()
+		}else{
+			res.render('servicio',{
+				servicio_route: 1,
+				servicios:[]});
 		};
 	});
 });
 
-router.get('/cuenta', function(req, res, next) {
-	res.locals.expensas.getCuenta(req.query.id,function(err,cuentas){
-		res.locals.expensas.getEntradas(req.query.id,0,100,function(docs){
-			res.locals.expensas.getTotalCuenta(req.query.id,function(err,total){
-				res.render('cuenta',{ 
-					cuenta_actual:req.query.id,
-					modificador:cuentas[0].modificador,
-					entradas:docs,
-					total:total });
-			})
-		});
+/* =================================================================== */
+/* =================================================================== */
+/* Service routes */
+/* =================================================================== */
+
+router.post('/eliminar_servicio', function(req, res, next) {
+	res.locals.expensas.eliminarServicio(req.body.id,function(){
+		res.redirect('back');
 	});
 });
 
@@ -72,7 +85,7 @@ router.post('/agregar_entrada', function(req, res, next) {
 		req.body.cuenta_id,
 		req.body.descripcion,
 		req.body.monto,
-		function(err,newDocs){
+		function(entrada){
 			res.redirect('/cuenta?id='+req.body.cuenta_id);
 	});
 });
@@ -84,8 +97,8 @@ router.post('/eliminar_cuenta', function(req, res, next) {
 });
 
 router.post('/agregar_cuenta', function(req, res, next) {
-	res.locals.expensas.agregarCuenta(req.body.nombre,function(err,newDocs){
-		res.redirect('/cuenta?id='+newDocs._id);
+	res.locals.expensas.agregarCuenta(req.body.nombre,function(cuenta){
+		res.redirect('/cuenta?id='+cuenta.id);
 	});
 });
 
@@ -95,7 +108,7 @@ router.post('/agregar_servicio', function(req, res, next) {
 		req.body.tipo,
 		req.body.cliente,
 		req.body.nombre,
-		function(newDocs){
+		function(servicio){
 			res.redirect('back');
 		});
 });
@@ -104,48 +117,10 @@ router.post('/agregar_servicio', function(req, res, next) {
 /** Manejo de comprobantes **/
 /****************************/
 
-var agregarNuevaEntrada = function(resultado){
-	// Si no tiene servicio no se agrega entrada
-	if(resultado.servicio.cuenta){
-		resultado.extra.expensas.getCuenta(resultado.servicio.cuenta,function(err,docs){
-			resultado.extra.expensas.agregarEntrada(
-				resultado.servicio.cuenta,
-				resultado.servicio.nombre,
-				resultado.importe*docs[0].modificador,
-				function(err,newDocs){
-					resultado.extra.callback();
-			});
-		});
-	}else{
-		resultado.extra.callback("ERROR: {cliente:"+resultado.cliente+" , tipo:"+resultado.tipo+" no tiene cuenta asociada");
-	}
-}
-
-var renombrarArchivo = function(resultado){
-	console.log(resultado);
-	resultado.extra.expensas.getServicio(
-		resultado.tipo,resultado.cliente,function(servicio){
-			if(servicio){
-				resultado.servicio=servicio;
-				console.log("Servicio:");
-				console.log(servicio);
-				var nuevo = __dirname + "/../files/" + "LinkPagos-"+servicio.nombre+"-"+moment().format('DD-MM-YYYY')+".pdf";
-				console.log("Renombrando a : "+ nuevo);
-				fs.rename(resultado.extra.archivo,nuevo,function(){
-					// TODO: Copiar el archivo al server por smb
-					agregarNuevaEntrada(resultado);
-				});
-			}else{
-				console.log("ERROR: {cliente:"+resultado.cliente+" , tipo:"+resultado.tipo+" no esta en la base de datos");
-				resultado.extra.callback("ERROR: {cliente:"+resultado.cliente+" , tipo:"+resultado.tipo+" no esta en la base de datos");
-			}
-		});
-}
-
 router.post('/cargar_comprobante', function(req, res, next) {
 	req.pipe(req.busboy);
     req.busboy.on('file', function (fieldname, file, filename) {
-        console.log("Uploading: " + filename); 
+        console.log("=UPLOADING= " + filename); 
         var path = __dirname + '/../files/' + filename;
     	var fstream = fs.createWriteStream(path);
         file.pipe(fstream);
@@ -153,7 +128,8 @@ router.post('/cargar_comprobante', function(req, res, next) {
             
             res.locals.expensas.obtenerDatosPDF(
             	path,
-            	renombrarArchivo,{
+            	renombrarArchivo,
+            	{
             		archivo:path,
             		expensas: res.locals.expensas,
             		callback: function(err){
@@ -201,6 +177,56 @@ router.post('/cargar_pdf', function(req, res, next) {
         },res.locals.expensas)
     });
 });
+
+/* =================================================================== */
+/* =================================================================== */
+/* Utility Functions */
+/* =================================================================== */
+
+/****************************/
+/** Manejo de comprobantes **/
+/****************************/
+
+var agregarNuevaEntrada = function(resultado){
+	// Si no tiene servicio no se agrega entrada
+	if(resultado.servicio.cuenta){
+		resultado.extra.expensas.getCuenta(resultado.servicio.cuenta,function(cuenta){
+			resultado.extra.expensas.agregarEntrada(
+				resultado.servicio.cuenta,
+				resultado.servicio.nombre,
+				resultado.datos.importe*cuenta.modificador,
+				function(entrada){
+					resultado.extra.callback();
+				});
+		});
+	}else{
+		resultado.extra.callback("ERROR: {cliente:"+resultado.datos.cliente+" , tipo:"+resultado.datos.tipo+" no tiene cuenta asociada");
+	}
+}
+
+var renombrarArchivo = function(resultado){
+	console.log("=UPLOAD COMPLETE= " + JSON.stringify(resultado.datos));
+	
+	if(!resultado.completo){
+		console.log("=ERROR= Extraccion incompleta de datos");
+		resultado.extra.callback("ERROR: {mensaje: 'Extraccion incompleta de datos'");
+	}else{
+		resultado.extra.expensas.getServicio(
+			resultado.datos.tipo,resultado.datos.cliente,function(servicio){
+				if(servicio.length>0){
+					resultado.servicio=servicio[0];
+					console.log("=BINDING= " + JSON.stringify(servicio[0]));
+					var nuevo = __dirname + "/../files/" + "TempDoc-"+servicio.nombre+"-"+moment().format('DD-MM-YYYY')+".pdf";
+					fs.rename(resultado.extra.archivo,nuevo,function(){
+						agregarNuevaEntrada(resultado);
+					});
+				}else{
+					console.log("=ERROR= El cliente "+resultado.datos.cliente+" de tipo "+resultado.datos.tipo+" NO esta en la base de datos");
+					resultado.extra.callback("ERROR: {cliente:"+resultado.datos.cliente+" , tipo:"+resultado.datos.tipo+" no esta en la base de datos");
+				}
+			});
+	}
+}
 
 module.exports = router;
 	
