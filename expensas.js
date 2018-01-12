@@ -6,17 +6,13 @@ var request = require('request');
 var shortid = require('shortid');
 
 var Expensas = function(serviceRoot,secretKey,cuentasId,entradasId,serviciosId){
-	console.log("=== Valores de arranque ===");
-	console.log("secretKey	=> " + secretKey);
-	console.log("cuentasId 	=> " + cuentasId);
-	console.log("entradasId 	=> " + entradasId);
-	console.log("serviciosId 	=> " + serviciosId);
-
 	this.secretKey = secretKey;
 	this.cuentasId = cuentasId;
 	this.entradasId = entradasId;
 	this.serviciosId = serviciosId;
 	this.serviceRoot=serviceRoot;
+
+	this.cuentasBuffer = null;
 }
 
 exports.Expensas = Expensas;
@@ -118,9 +114,15 @@ Expensas.prototype.eliminarEntrada = function(idEntrada,callback){
 }
 
 Expensas.prototype.getCuentas = function(callback){
-	this.getBucket(this.cuentasId+"/latest",function(cuentas){
-		callback(cuentas);
-	});
+	var _this = this;
+	if(this.cuentasBuffer!=null){
+		callback(this.cuentasBuffer);
+	}else{
+		this.getBucket(this.cuentasId+"/latest",function(cuentas){
+			_this.cuentasBuffer = cuentas;
+			callback(cuentas);
+		});
+	}
 }
 
 Expensas.prototype.agregarCuenta = function(nombre,callback){	
@@ -132,6 +134,7 @@ Expensas.prototype.agregarCuenta = function(nombre,callback){
 		};
 
 		cuentas.push(cuenta);
+		_this.cuentasBuffer.push(cuenta);
 		_this.storeBucket(_this.cuentasId,cuentas,function(){
 			callback(cuenta);
 		});
@@ -141,7 +144,8 @@ Expensas.prototype.agregarCuenta = function(nombre,callback){
 Expensas.prototype.eliminarCuenta = function(idCuenta,callback){
 	_this = this;
 	this.getCuentas(function(cuentas){
-		cuenta = cuentas.filter(function(e){ return e.id!=idCuenta; });
+		cuentas = cuentas.filter(function(e){ return e.id!=idCuenta; });
+		_this.cuentasBuffer = cuentas;
 		_this.storeBucket(_this.cuentasId,cuentas,callback);
 	});
 }
@@ -235,11 +239,6 @@ Expensas.prototype.getServicios = function(callback){
 }
 
 Expensas.prototype.getServicio = function(tipo,cliente,callback){
-	var servicio = {
-		tipo: tipo,
-		cliente: cliente
-	};
-	
 	this.getServicios(function(servicios){
 		var servicio = servicios.find(function(e){
 			return 	(e.tipo === tipo) && 
@@ -252,7 +251,7 @@ Expensas.prototype.getServicio = function(tipo,cliente,callback){
 Expensas.prototype.eliminarServicio = function(idServicio,callback){
 	_this = this;
 	this.getServicios(function(servicios){
-		servicios = servicios.find(function(e){ return e.id!=idServicio; });
+		servicios = servicios.filter(function(e){ return e.id!=idServicio; });
 		_this.storeBucket(_this.serviciosId,servicios,callback);
 	});
 }
@@ -304,19 +303,17 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		},
 
 		cargarTipo:function(resultado,valor,extra){
-			console.log("=DEBUG= " + valor);
 			if(extra){
-				resultado.datos.tipo= valor;
+				resultado.datos.tipo= valor.trim();
 				return;
 			}
 
 			if(valor.match(/^PAGO DE/)!==null){
-				resultado.datos.tipo=valor.substr(8);
+				resultado.datos.tipo=valor.substr(8).trim();
 			}
 		},
 
 		cargarImporte:function(resultado,valor,extra){
-			console.log("=DEBUG= " + valor);
 			if(extra){
 				resultado.datos.importe= parseFloat(valor.replace(/\$/,""));
 				return;
@@ -328,8 +325,6 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		},
 
 		cargarCliente:function(resultado,valor,extra){
-			console.log("=DEBUG= " + valor);
-			
 			if(extra){
 				resultado.datos.cliente = valor;
 				return;

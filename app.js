@@ -11,22 +11,35 @@ var routes = require('./routes/index');
 
 var app = express();
 
-// Expensas ref
+// Expensas/Convertidor ref
 var expensas = require('./expensas');
+var convertidor = require('./convertidor');
 var serviceRoot = 'https://api.jsonbin.io/b/';
 var secretKey = fs.readFileSync('secret.txt','utf-8').trim();
+var cuentasId="5a4d282ba8fa173d86ad6842";
+var entradasId="5a4d2826a8fa173d86ad6840";
+var serviciosId="5a4d27effa0fa33d7b634fe5";
+var offsetsId="5a58b31f7cfd5a4dbc6b4af8";
+
+console.log("=== Valores de arranque ===");
+console.log("secretKey      => " + secretKey);
+console.log("cuentasId      => " + cuentasId);
+console.log("entradasId     => " + entradasId);
+console.log("serviciosId    => " + serviciosId);
+console.log("offsetsId      => " + offsetsId);
+
 app.locals.expensas = new expensas.Expensas(
     serviceRoot,
     secretKey,
-    "5a4d282ba8fa173d86ad6842",
-    "5a4d2826a8fa173d86ad6840",
-    "5a4d27effa0fa33d7b634fe5");
+    cuentasId,
+    entradasId,
+    serviciosId);
 
-var convertidor = require('./convertidor');
 app.locals.convertidor = new convertidor.Convertidor(
     serviceRoot,
     secretKey,
-    "5a57f8c975f6c54daf7f9a42");
+    offsetsId,
+    __dirname + "/files");
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

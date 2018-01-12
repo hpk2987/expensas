@@ -145,6 +145,7 @@ router.post('/cargar_comprobante', function(req, res, next) {
 
 router.get('/descargar_agrupado', function(req, res, next) {
 	fs.readFile(__dirname + "/../files/agrupado.pdf", function (err,data){
+	     res.header('Content-Disposition', 'attachment; filename=Pagos.pdf');
 	     res.contentType("application/pdf");
 	     res.send(data);
   	});
@@ -156,7 +157,7 @@ router.post('/cargar_pdf', function(req, res, next) {
 	var files=[];
     req.busboy.on('file', function (fieldname, file, filename) {
 		var path = __dirname + '/../files/' + filename;
-		console.log("Cargando: " + filename);
+		console.log("=UPLOADING= Cargando: " + filename);
 		
 		var fstream = fs.createWriteStream(path);
 		file.pipe(fstream);
@@ -167,10 +168,8 @@ router.post('/cargar_pdf', function(req, res, next) {
 
 
     req.busboy.on('finish', function(){
-        console.log('Se cargaron todos los archivos ' + files);
-        console.log('Convirtiendo...');
-        res.locals.convertidor.convertir(files,__dirname + "/../files",function(filename){
-        	console.log('Se genero pdf ' + filename + ' enviando...');
+        console.log('=UPLOAD COMPLETE= Se cargaron todos los archivos');
+        res.locals.convertidor.convertir(files,function(filename){
         	res.redirect('back');
         },res.locals.expensas)
     });
@@ -211,9 +210,9 @@ var renombrarArchivo = function(resultado){
 	}else{
 		resultado.extra.expensas.getServicio(
 			resultado.datos.tipo,resultado.datos.cliente,function(servicio){
-				if(servicio!=null && servicio.length>0){
-					resultado.servicio=servicio[0];
-					console.log("=BINDING= " + JSON.stringify(servicio[0]));
+				if(servicio!=null){
+					resultado.servicio=servicio;
+					console.log("=BINDING= " + JSON.stringify(servicio));
 					var nuevo = __dirname + "/../files/" + "TempDoc-"+servicio.nombre+"-"+moment().format('DD-MM-YYYY')+".pdf";
 					fs.rename(resultado.extra.archivo,nuevo,function(){
 						agregarNuevaEntrada(resultado);
