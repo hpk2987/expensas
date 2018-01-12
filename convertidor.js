@@ -87,6 +87,11 @@ var ConversionUtils = function(serviceRoot,secretKey,offsetsId,temporal){
 }
 
 ConversionUtils.prototype.obtenerOffsets = function(callback){
+	// PARA AJUSTAR OFFSETS SOLAMENTE
+	/*fs.readFile("./offsets.json", function(err, data){
+		callback(JSON.parse(data));
+	});*/
+
 	if(this.offsetsBuffer !== null){
 		callback(this.offsetsBuffer);
 		return;
@@ -111,7 +116,7 @@ ConversionUtils.prototype.obtenerOffsets = function(callback){
 			_this.offsetsBuffer = JSON.parse(body);
 			callback(_this.offsetsBuffer);
 		}
-	});	
+	});
 }
 
 ConversionUtils.prototype.convertirPDFsaPNGs = function(fuenteDatos,expensas){
@@ -210,6 +215,7 @@ ConversionUtils.prototype.dibujarImagenesEnCanvasHojaA4 = function(fuenteDatos){
 			}			
 
 			var off = offsetData[indice];
+			console.log("=OFFSETS= " + JSON.stringify(off));
 			ctx.drawImage(imagen.data,
 				off.sx,
 				off.sy,
@@ -235,7 +241,7 @@ ConversionUtils.prototype.dibujarImagenesEnCanvasHojaA4 = function(fuenteDatos){
 	var procesarFuenteHastaCompletarHoja = function(fuenteDatos,canvas,ctx,indiceHoja,callback){
 		if(fuenteDatos.hayMas() && indiceHoja<4){
 			var imagen = fuenteDatos.obtener();
-			fs.readFile(imagen.archivo, function(err, data) {					
+			fs.readFile(imagen.archivo, function(err, data) {
 				var img = new Image();
 				img.src = data;
 				imagen.data = img;
