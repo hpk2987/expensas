@@ -3,7 +3,6 @@ var express = require('express');
 var router = express.Router();
 var busboy = require('connect-busboy');
 var moment = require('moment');
-var conv = require('../convertidor');
 
 
 /* =================================================================== */
@@ -154,7 +153,6 @@ router.get('/descargar_agrupado', function(req, res, next) {
 router.post('/cargar_pdf', function(req, res, next) {
 	req.pipe(req.busboy);
 
-	var convertidor = new conv.Convertidor();
 	var files=[];
     req.busboy.on('file', function (fieldname, file, filename) {
 		var path = __dirname + '/../files/' + filename;
@@ -171,7 +169,7 @@ router.post('/cargar_pdf', function(req, res, next) {
     req.busboy.on('finish', function(){
         console.log('Se cargaron todos los archivos ' + files);
         console.log('Convirtiendo...');
-        convertidor.convertir(files,__dirname + "/../files",function(filename){
+        res.locals.convertidor.convertir(files,__dirname + "/../files",function(filename){
         	console.log('Se genero pdf ' + filename + ' enviando...');
         	res.redirect('back');
         },res.locals.expensas)
@@ -213,7 +211,7 @@ var renombrarArchivo = function(resultado){
 	}else{
 		resultado.extra.expensas.getServicio(
 			resultado.datos.tipo,resultado.datos.cliente,function(servicio){
-				if(servicio.length>0){
+				if(servicio!=null && servicio.length>0){
 					resultado.servicio=servicio[0];
 					console.log("=BINDING= " + JSON.stringify(servicio[0]));
 					var nuevo = __dirname + "/../files/" + "TempDoc-"+servicio.nombre+"-"+moment().format('DD-MM-YYYY')+".pdf";

@@ -241,7 +241,7 @@ Expensas.prototype.getServicio = function(tipo,cliente,callback){
 	};
 	
 	this.getServicios(function(servicios){
-		var servicio = servicios.filter(function(e){
+		var servicio = servicios.find(function(e){
 			return 	(e.tipo === tipo) && 
 					(e.cliente===cliente);
 		});
@@ -295,23 +295,51 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		},
 
 		esCliente:function(valor){
-			return valor.match(/^NRO.[ ]?DE CLIENTE/)!==null;
+			return (valor.match(/^NRO.[ ]?DE CLIENTE/)!==null) ||
+					(valor.match(/^CUIT[ ]*CONTRIBUYENTE/)!==null);
 		},
 
 		esImporte:function(valor){
 			return valor.match(/^IMPORTE:/)!==null;
 		},
 
-		cargarTipo:function(resultado,valor){
-			resultado.datos.tipo=valor.substr(8);
+		cargarTipo:function(resultado,valor,extra){
+			console.log("=DEBUG= " + valor);
+			if(extra){
+				resultado.datos.tipo= valor;
+				return;
+			}
+
+			if(valor.match(/^PAGO DE/)!==null){
+				resultado.datos.tipo=valor.substr(8);
+			}
 		},
 
-		cargarImporte:function(resultado,valor){
-			resultado.datos.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));
+		cargarImporte:function(resultado,valor,extra){
+			console.log("=DEBUG= " + valor);
+			if(extra){
+				resultado.datos.importe= parseFloat(valor.replace(/\$/,""));
+				return;
+			}
+
+			if(valor.match(/^IMPORTE:/)!==null){
+				resultado.datos.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));			
+			}
 		},
 
-		cargarCliente:function(resultado,valor){
-			resultado.datos.cliente=valor.substr(valor.indexOf(':')+2);
+		cargarCliente:function(resultado,valor,extra){
+			console.log("=DEBUG= " + valor);
+			
+			if(extra){
+				resultado.datos.cliente = valor;
+				return;
+			}
+
+			if(valor.match(/^NRO.[ ]?DE CLIENTE/)!==null){
+				resultado.datos.cliente=valor.substr(valor.indexOf(':')+2);
+			}else {
+				resultado.datos.cliente = null;
+			}
 		},
 	};
 
@@ -330,16 +358,34 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		    
 		    if(operaciones.esTipo(texto)){
 	    		operaciones.cargarTipo(resultado,texto);
+	    		// Esta en la siguiente linea
+	    		if(resultado.datos.tipo===""){
+	    			i++;
+	    			var texto = decodeURIComponent(textos[i].R[0].T);		
+	    			operaciones.cargarTipo(resultado,texto,true);
+	    		}
 			}
 
 			if(operaciones.esCliente(texto)){
 				// CLIENTE
 				operaciones.cargarCliente(resultado,texto);
+				// Esta en la siguiente linea
+				if(resultado.datos.cliente===null){
+	    			i++;
+	    			var texto = decodeURIComponent(textos[i].R[0].T);		
+	    			operaciones.cargarCliente(resultado,texto,true);
+	    		}
 			}
 
 			if(operaciones.esImporte(texto)){
 				// IMPORTE
 				operaciones.cargarImporte(resultado,texto);
+				// Esta en la siguiente linea				
+	    		if(isNaN(resultado.datos.importe)){
+	    			i++;
+	    			var texto = decodeURIComponent(textos[i].R[0].T);		
+	    			operaciones.cargarImporte(resultado,texto,true);
+	    		}
 			}
 
 			if(operaciones.completo(resultado)){

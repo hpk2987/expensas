@@ -22,6 +22,12 @@ app.locals.expensas = new expensas.Expensas(
     "5a4d2826a8fa173d86ad6840",
     "5a4d27effa0fa33d7b634fe5");
 
+var convertidor = require('./convertidor');
+app.locals.convertidor = new convertidor.Convertidor(
+    serviceRoot,
+    secretKey,
+    "5a57f8c975f6c54daf7f9a42");
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -39,6 +45,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Cargar cuentas para las vistas
 app.use(function(req, res, next) {
+    res.locals.convertidor = app.locals.convertidor;
+
     app.locals.expensas.getCuentas(function(cuentas){
         res.locals.cuentas = cuentas;
         res.locals.expensas = app.locals.expensas;
