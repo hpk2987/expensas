@@ -98,7 +98,7 @@ ConversionUtils.prototype.obtenerOffsets = function(callback){
 	}
 
 	var options = {
-		url: this.serviceRoot+this.offsetsId,
+		url: this.serviceRoot+this.offsetsId+"/latest",
 		method: "GET",
 		headers:{
 			'secret-key': this.secretKey,
@@ -106,7 +106,7 @@ ConversionUtils.prototype.obtenerOffsets = function(callback){
 		}
 	};
 
-	console.log("=GET= " + this.serviceRoot+this.offsetsId+"/latest");
+	console.log("=GET= " + options.url);
 	var _this=this;
 	request(options,function(error,response,body){
 		console.log("=RESPUESTA GET= "  + body);
