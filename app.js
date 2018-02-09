@@ -21,6 +21,10 @@ var entradasId="5a4d2826a8fa173d86ad6840";
 var serviciosId="5a4d27effa0fa33d7b634fe5";
 var offsetsId="5a58b31f7cfd5a4dbc6b4af8";
 
+if(process.env.EXPENSAS_MODO==="DEBUG"){
+    console.log("=WARNING= INICIANDO EL SERVIDOR EN MODO DEBUG!");
+}
+
 console.log("=== Valores de arranque ===");
 console.log("secretKey      => " + secretKey);
 console.log("cuentasId      => " + cuentasId);

@@ -88,35 +88,38 @@ var ConversionUtils = function(serviceRoot,secretKey,offsetsId,temporal){
 
 ConversionUtils.prototype.obtenerOffsets = function(callback){
 	// PARA AJUSTAR OFFSETS SOLAMENTE
-	/*fs.readFile("./offsets.json", function(err, data){
-		callback(JSON.parse(data));
-	});*/
+	if(process.env.EXPENSAS_MODO==="DEBUG"){
+		fs.readFile("./offsets.json", function(err, data){
+			callback(JSON.parse(data));
+		});
+		
+	}else{
+		if(this.offsetsBuffer !== null){
+			callback(this.offsetsBuffer);
+			return;
+		}
 
-	if(this.offsetsBuffer !== null){
-		callback(this.offsetsBuffer);
-		return;
+		var options = {
+			url: this.serviceRoot+this.offsetsId+"/latest",
+			method: "GET",
+			headers:{
+				'secret-key': this.secretKey,
+				'content-type': 'application/json'
+			}
+		};
+
+		console.log("=GET= " + options.url);
+		var _this=this;
+		request(options,function(error,response,body){
+			console.log("=RESPUESTA GET= "  + body);
+			if(error!=null){
+				console.error(error);
+			}else{
+				_this.offsetsBuffer = JSON.parse(body);
+				callback(_this.offsetsBuffer);
+			}
+		});
 	}
-
-	var options = {
-		url: this.serviceRoot+this.offsetsId+"/latest",
-		method: "GET",
-		headers:{
-			'secret-key': this.secretKey,
-			'content-type': 'application/json'
-		}
-	};
-
-	console.log("=GET= " + options.url);
-	var _this=this;
-	request(options,function(error,response,body){
-		console.log("=RESPUESTA GET= "  + body);
-		if(error!=null){
-			console.error(error);
-		}else{
-			_this.offsetsBuffer = JSON.parse(body);
-			callback(_this.offsetsBuffer);
-		}
-	});
 }
 
 ConversionUtils.prototype.convertirPDFsaPNGs = function(fuenteDatos,expensas){
@@ -148,6 +151,12 @@ ConversionUtils.prototype.convertirPDFsaPNGs = function(fuenteDatos,expensas){
 								nombre: servicio.nombre,
 								archivo:outfile
 							});
+						}else{
+							console.log("=BINDING= FAILED!");
+							console.log("=DEBUG= Resultado => " + JSON.stringify(resultado.datos));
+							callback({
+								archivo:outfile
+							});		
 						}
 					});
 				}else{

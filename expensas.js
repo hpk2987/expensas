@@ -330,15 +330,14 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 				resultado.datos.cliente = valor;
 				return;
 			}
-			
-			// Caso especial en el que el cliente esta en la otra linea
-			if(valor.match(/^NRO.[ ]?DE CLIENTE:$/)!==null){
-				resultado.datos.cliente = null;
-				return;
-			}
 
-			if(valor.match(/^NRO.[ ]?DE CLIENTE/)!==null){
-				resultado.datos.cliente=valor.substr(valor.indexOf(':')+2);
+			if(valor.match(/^NRO\.[ ]?DE CLIENTE/)!==null){
+				// Caso especial en el que el cliente esta en la otra linea
+				if(valor.match(/^NRO\.[ ]?DE CLIENTE:$/)!==null){
+					resultado.datos.cliente = null;
+				}else{
+					resultado.datos.cliente=valor.substr(valor.indexOf(':')+2);
+				}
 			}else {				
 				resultado.datos.cliente = null;
 			}
@@ -372,7 +371,7 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 				// CLIENTE
 				operaciones.cargarCliente(resultado,texto);
 				// Esta en la siguiente linea
-				if(resultado.datos.cliente===null || texto.match(/^/)){
+				if(resultado.datos.cliente===null){
 	    			i++;
 	    			var texto = decodeURIComponent(textos[i].R[0].T);		
 	    			operaciones.cargarCliente(resultado,texto,true);
