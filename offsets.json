@@ -1,0 +1,136 @@
+[
+    {
+        "nombre": "default",
+        "servicios": [],
+        "offsets": [
+            {
+                "sx": 520,
+                "sy": 260,
+                "sWidth": 1300,
+                "sHeight": 2100,
+                "dx": 0,
+                "dy": 0,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 250,
+                    "y": 1500
+                }
+            },
+            {
+                "sx": 289,
+                "sy": 122,
+                "sWidth": 1250,
+                "sHeight": 1720,
+                "dx": 1260,
+                "dy": 0,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 1410,
+                    "y": 1300
+                }
+            },
+            {
+                "sx": 289,
+                "sy": 122,
+                "sWidth": 1250,
+                "sHeight": 1720,
+                "dx": 0,
+                "dy": 1730,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 150,
+                    "y": 3030
+                }
+            },
+            {
+                "sx": 289,
+                "sy": 122,
+                "sWidth": 1250,
+                "sHeight": 1720,
+                "dx": 1260,
+                "dy": 1730,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 1410,
+                    "y": 3030
+                }
+            }
+        ]
+    },
+    {
+        "nombre": "AFIP",
+        "servicios": [
+            "VEP AFIP"
+        ],
+        "offsets": [
+            {
+                "sx": 230,
+                "sy": 182,
+                "sWidth": 1440,
+                "sHeight": 1680,
+                "dx": 0,
+                "dy": 0,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 800,
+                    "y": 1500
+                }
+            },
+            {
+                "sx": 230,
+                "sy": 182,
+                "sWidth": 1440,
+                "sHeight": 1680,
+                "dx": 1260,
+                "dy": 0,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 2060,
+                    "y": 1500
+                }
+            },
+            {
+                "sx": 230,
+                "sy": 182,
+                "sWidth": 1440,
+                "sHeight": 1680,
+                "dx": 0,
+                "dy": 1730,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 800,
+                    "y": 3230
+                }
+            },
+            {
+                "sx": 230,
+                "sy": 182,
+                "sWidth": 1440,
+                "sHeight": 1680,
+                "dx": 1260,
+                "dy": 1730,
+                "dWidth": 1250,
+                "dHeight": 1720,
+                "text": {
+                    "font": "62px serif",
+                    "x": 2060,
+                    "y": 3230
+                }
+            }
+        ]
+    }
+]

@@ -88,7 +88,7 @@ var ConversionUtils = function(serviceRoot,secretKey,offsetsId,temporal){
 
 ConversionUtils.prototype.obtenerOffsets = function(callback){
 	// PARA AJUSTAR OFFSETS SOLAMENTE
-	if(process.env.EXPENSAS_MODO==="DEBUG"){
+	if(process.env.EXPENSAS_MODO.match(/DEBUG/g)){
 		fs.readFile("./offsets.json", function(err, data){
 			callback(JSON.parse(data));
 		});

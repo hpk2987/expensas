@@ -291,55 +291,48 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		},
 
 		esTipo:function(valor){
-			return valor.match(/^PAGO DE/)!==null;
+			return valor.match(/^PAGO DE/i)!==null;
 		},
 
 		esCliente:function(valor){
-			return (valor.match(/^NRO.[ ]?DE CLIENTE/)!==null) ||
-					(valor.match(/^CUIT[ ]*CONTRIBUYENTE/)!==null);
+			return (valor.match(/^NRO.[ ]?DE CLIENTE/i)!==null) ||
+					(valor.match(/^CUIT[ ]*CONTRIBUYENTE/i)!==null);
 		},
 
 		esImporte:function(valor){
-			return valor.match(/^IMPORTE:/)!==null;
+			return valor.match(/^IMPORTE:/i)!==null ||
+					valor.match(/IMPORTE$/i)!==null;
 		},
 
-		cargarTipo:function(resultado,valor,extra){
-			if(extra){
-				resultado.datos.tipo= valor.trim();
-				return;
+		cargarTipo:function(resultado,valor){
+			if(valor.match(/ - Comprobante$/)){
+				valor = valor.replace(/ - Comprobante$/,"");
 			}
 
-			if(valor.match(/^PAGO DE/)!==null){
+			if(valor.match(/^PAGO DE/i)!==null){
 				resultado.datos.tipo=valor.substr(8).trim();
 			}
 		},
 
-		cargarImporte:function(resultado,valor,extra){
-			if(extra){
-				resultado.datos.importe= parseFloat(valor.replace(/\$/,""));
-				return;
+		cargarImporte:function(resultado,valor){
+			if(valor.match(/^IMPORTE:/i)!==null){
+				resultado.datos.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));			
 			}
 
-			if(valor.match(/^IMPORTE:/)!==null){
-				resultado.datos.importe=parseFloat(valor.substr(valor.indexOf(':')+3).replace(',','.'));			
+			if(valor.match(/IMPORTE$/i)!==null){
+				resultado.datos.importe=parseFloat(valor.replace(/IMPORTE$/i,'').trim().replace(',','.'));			
 			}
 		},
 
-		cargarCliente:function(resultado,valor,extra){
-			if(extra){
-				resultado.datos.cliente = valor;
-				return;
-			}
+		cargarCliente:function(resultado,valor){
+			if((valor.match(/^NRO.[ ]?DE CLIENTE/i)!==null) ||
+				(valor.match(/^CUIT[ ]*CONTRIBUYENTE/i)!==null)){
 
-			if(valor.match(/^NRO\.[ ]?DE CLIENTE/)!==null){
-				// Caso especial en el que el cliente esta en la otra linea
-				if(valor.match(/^NRO\.[ ]?DE CLIENTE:$/)!==null){
-					resultado.datos.cliente = null;
-				}else{
+				if(valor.indexOf(':')!==-1){
 					resultado.datos.cliente=valor.substr(valor.indexOf(':')+2);
+				}else{
+					resultado.datos.cliente=valor.substr(19);
 				}
-			}else {				
-				resultado.datos.cliente = null;
 			}
 		},
 	};
@@ -354,45 +347,63 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		// Son comprobantes siempre tienen una sola pagina
 		var textos = pdfData.formImage.Pages[0].Texts;
 
+		var beVerbose = process.env.EXPENSAS_MODO.match(/DEBUG/g) && process.env.EXPENSAS_MODO.match(/VERBOSE/g);
+
+		if(beVerbose){
+			console.log("=DEBUG= Full pdf text parse");
+			console.log("=DEBUG=" + JSON.stringify(textos));
+		}
+
+		// Agrupar como lineas textos con la misma coordenada "y"
+		var agrupados = {};
 		for (var i = 0; i < textos.length; i++) {
-			var texto = decodeURIComponent(textos[i].R[0].T);		
-		    
+			if(agrupados[textos[i].y.toString()] === undefined){
+				agrupados[textos[i].y.toString()] = {texto: ""};
+			}
+			
+			agrupados[textos[i].y.toString()].texto +=  decodeURIComponent(textos[i].R[0].T) + " ";
+		}
+
+		for(var key in agrupados){
+			var texto = agrupados[key].texto.trim();
+			
+			if(beVerbose){
+				console.log("=DEBUG= Texto=" + texto);
+				console.log("=DEBUG= Linea Y=" + key);
+				console.log("=DEBUG= Es Tipo = " + operaciones.esTipo(texto));
+				console.log("=DEBUG= Es Cliente = " + operaciones.esCliente(texto));
+				console.log("=DEBUG= Es Importe = " + operaciones.esImporte(texto));				
+				console.log("=DEBUG= Resultado=" + JSON.stringify(resultado));
+			}
+
 		    if(operaciones.esTipo(texto)){
 	    		operaciones.cargarTipo(resultado,texto);
-	    		// Esta en la siguiente linea
-	    		if(resultado.datos.tipo===""){
-	    			i++;
-	    			var texto = decodeURIComponent(textos[i].R[0].T);		
-	    			operaciones.cargarTipo(resultado,texto,true);
-	    		}
 			}
 
 			if(operaciones.esCliente(texto)){
 				// CLIENTE
 				operaciones.cargarCliente(resultado,texto);
-				// Esta en la siguiente linea
-				if(resultado.datos.cliente===null){
-	    			i++;
-	    			var texto = decodeURIComponent(textos[i].R[0].T);		
-	    			operaciones.cargarCliente(resultado,texto,true);
-	    		}
 			}
 
 			if(operaciones.esImporte(texto)){
 				// IMPORTE
 				operaciones.cargarImporte(resultado,texto);
-				// Esta en la siguiente linea				
-	    		if(isNaN(resultado.datos.importe)){
-	    			i++;
-	    			var texto = decodeURIComponent(textos[i].R[0].T);		
-	    			operaciones.cargarImporte(resultado,texto,true);
-	    		}
 			}
 
 			if(operaciones.completo(resultado)){
-				break;				
+				break;
 			}
+		};
+
+		if(beVerbose){
+			console.log("=DEBUG= Texto=" + texto);
+			console.log("=DEBUG= Linea Y=" + key);
+			console.log("=DEBUG= Es Tipo = " + operaciones.esTipo(texto));
+			console.log("=DEBUG= Es Cliente = " + operaciones.esCliente(texto));
+			console.log("=DEBUG= Es Importe = " + operaciones.esImporte(texto));				
+			console.log("=DEBUG= Resultado=" + JSON.stringify(resultado));
 		}
+
 
 		resultado.completo=operaciones.completo(resultado);
 		if(!resultado.completo){

@@ -21,8 +21,12 @@ var entradasId="5a4d2826a8fa173d86ad6840";
 var serviciosId="5a4d27effa0fa33d7b634fe5";
 var offsetsId="5a58b31f7cfd5a4dbc6b4af8";
 
-if(process.env.EXPENSAS_MODO==="DEBUG"){
+if(process.env.EXPENSAS_MODO.match(/DEBUG/g)){
     console.log("=WARNING= INICIANDO EL SERVIDOR EN MODO DEBUG!");
+}
+
+if(process.env.EXPENSAS_MODO.match(/VERBOSE/g)){
+    console.log("=WARNING= INICIANDO EL SERVIDOR EN MODO VERBOSE!");
 }
 
 console.log("=== Valores de arranque ===");
