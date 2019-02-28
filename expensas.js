@@ -291,7 +291,9 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		},
 
 		esTipo:function(valor){
-			return valor.match(/^PAGO DE/i)!==null;
+			return valor.match(/^PAGO DE/i)!==null ||
+					valor.match(/^abonado/i)!==null ||
+					valor.match(/^Descripción Pago/i)!==null;
 		},
 
 		esCliente:function(valor){
@@ -311,6 +313,14 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 
 			if(valor.match(/^PAGO DE/i)!==null){
 				resultado.datos.tipo=valor.substr(8).trim();
+			}
+
+			if(valor.match(/^abonado/i)!==null){
+				resultado.datos.tipo=valor.substr(9).trim();
+			}
+
+			if(valor.match(/^Descripción Pago/i)!==null){
+				resultado.datos.tipo=valor.substr(17).trim();
 			}
 		},
 
@@ -357,11 +367,12 @@ Expensas.prototype.obtenerDatosPDF = function(archivo,callback,extra){
 		// Agrupar como lineas textos con la misma coordenada "y"
 		var agrupados = {};
 		for (var i = 0; i < textos.length; i++) {
-			if(agrupados[textos[i].y.toString()] === undefined){
-				agrupados[textos[i].y.toString()] = {texto: ""};
+			var coordenadaY = Math.floor(textos[i].y);
+			if(agrupados[coordenadaY.toString()] === undefined){
+				agrupados[coordenadaY.toString()] = {texto: ""};
 			}
 			
-			agrupados[textos[i].y.toString()].texto +=  decodeURIComponent(textos[i].R[0].T) + " ";
+			agrupados[coordenadaY.toString()].texto +=  decodeURIComponent(textos[i].R[0].T) + " ";
 		}
 
 		for(var key in agrupados){
