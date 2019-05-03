@@ -5,31 +5,37 @@ const PDFParser = require("pdf2json");
 
 class Expensas {
     constructor(dbname, inMemory) {
-        this.file = "./db"+dbname
-        this.file2 = "./db/entradas." + dbname
-        this.file3 = "./db/servicios." + dbname
-        logger.info({ message: "Arrancando desde: " + dbname })
-        this.db = {}
+        const file = "./db/" + dbname + ".json"
+        const file2 = "./db/entradas." + dbname + ".json"
+        const file3 = "./db/servicios." + dbname + ".json"
 
+        this.db = {}
         if (inMemory) {
             this.db.cuentas = new Datastore({ inMemoryOnly: true })
             this.db.entradas = new Datastore({ inMemoryOnly: true })
             this.db.servicios = new Datastore({ inMemoryOnly: true })
         } else {
-            this.db.cuentas = new Datastore({ filename: this.file, autoload: true })
-            this.db.entradas = new Datastore({ filename: this.file2, autoload: true })
-            this.db.servicios = new Datastore({ filename: this.file3, autoload: true })
+            this.db.cuentas = new Datastore({ filename: file, autoload: true })
+            logger.debug({ message: "Cuentas DB : " + file })
+            this.db.entradas = new Datastore({ filename: file2, autoload: true })
+            logger.debug({ message: "Entradas DB : " + file2 })
+            this.db.servicios = new Datastore({ filename: file3, autoload: true })
+            logger.debug({ message: "Servicios DB : " + file3 })
         }
     }
 
     getEntradasDeCuenta(idCuenta, offset, size, done) {
-        logger.info({ message: "Entradas de:" + idCuenta + " | offset:" + offset + " | size:" + size })
+        logger.debug({ message: "Entradas de:" + idCuenta + " | offset:" + offset + " | size:" + size })
         this.db.entradas.find({ cuenta: idCuenta })
             .sort({ secs: -1 })
             .skip(offset)
             .limit(size).exec(function (err, docs) {
-                logger.info({ message: "Entradas obtenidas:" + docs.length })
-                done(docs)
+                if (err) {
+                    done(err)
+                } else {
+                    logger.debug({ message: "Entradas obtenidas:" + docs.length })
+                    done(err, docs)
+                }
             })
     }
 
@@ -41,35 +47,27 @@ class Expensas {
             fecha: moment().format('DD/MM/YYYY'),
             secs: new Date().getTime()
         };
-        logger.info({ message: "Agregando entrada:" + JSON.stringify(entrada) });
+        logger.debug({ message: "Agregando entrada:" + JSON.stringify(entrada) });
         this.db.entradas.insert(entrada, done)
     }
 
     eliminarEntrada(idEntrada, done) {
-        logger.info({ message: "Eliminando entrada: " + idEntrada })
+        logger.debug({ message: "Eliminando entrada: " + idEntrada })
         this.db.entradas.remove({ _id: idEntrada }, {}, done)
     }
 
-    getCuentas(callback) {
-        var _this = this;
-        if (this.cuentasBuffer != null) {
-            callback(this.cuentasBuffer)
-        } else {
-            this.getBucket(this.cuentasId + "/latest", function (cuentas) {
-                _this.cuentasBuffer = cuentas
-                callback(cuentas)
-            });
-        }
+    getCuentas(done) {
+        this.db.cuentas.find({}).exec(done)
     }
 
     agregarCuenta(nombre, done) {
         var cuenta = { nombre: nombre }
-        logger.info({ message: "Agregando cuenta nombre:" + JSON.stringify(cuenta) })
+        logger.debug({ message: "Agregando cuenta nombre:" + JSON.stringify(cuenta) })
         this.db.cuentas.insert(cuenta, done)
     }
 
     eliminarCuenta(idCuenta, done) {
-        logger.info({ message: "Eliminando cuenta :" + idCuenta })
+        logger.debug({ message: "Eliminando cuenta :" + idCuenta })
         this.db.cuentas.remove({ _id: idCuenta }, {}, done);
     }
 
@@ -79,7 +77,9 @@ class Expensas {
 
     getTotalCuenta(idCuenta, done) {
         this.db.entradas.find({ cuenta: idCuenta }, function (err, docs) {
-            if (done) {
+            if (err) {
+                done(err)
+            } else {
                 var total = 0
                 for (var i = 0; i < docs.length; i++) {
                     total += parseInt((docs[i].monto * 10).toString())
@@ -93,27 +93,32 @@ class Expensas {
         let hoy = new Date()
         hoy.setHours(0, 0, 0, 0)
 
-        logger.info({ message: "Entradas de hoy de:" + idCuenta })
+        logger.debug({ message: "Entradas de hoy de:" + idCuenta })
         this.db.entradas.find({ cuenta: idCuenta, secs: { $gt: hoy.getTime() } })
             .sort({ secs: -1 })
             .exec(function (err, docs) {
-                logger.info({ message: "Entradas obtenidas:" + docs.length })
-                done(err, docs)
+                if (err) {
+                    done(err)
+                } else {
+                    logger.debug({ message: "Entradas obtenidas:" + docs.length })
+                    done(err, docs)
+                }
             })
     }
 
 
-    getResumenHoy(callback) {
+    getResumenHoy(done) {
         let resumen = {
             cuentas: [],
             fecha: moment().format('DD/MM/YYYY')
         }
 
-        getCuentas(function (err, docs) {
+        const _me = this;
+        this.getCuentas(function (err, docs) {
             let funcs = [];
             docs.forEach(function (cuenta) {
                 funcs.push(function () {
-                    getEntradasHoy(cuenta._id, function (err, docs) {
+                    _me.getEntradasHoy(cuenta._id, function (err, docs) {
                         if (docs.length > 0) {
                             //Calcular total
                             let total = 0
@@ -131,7 +136,7 @@ class Expensas {
                         if (funcs.length > 0) {
                             funcs.splice(0, 1)[0]()
                         } else {
-                            callback(resumen)
+                            done(resumen)
                         }
                     });
                 });
@@ -148,8 +153,12 @@ class Expensas {
 
     getServicios(done) {
         this.db.servicios.find({}).exec(function (err, docs) {
-            logger.info({ message: "Servicios obtenidas:" + docs.length })
-            done(docs)
+            if (err) {
+                done(err)
+            } else {
+                logger.debug({ message: "Servicios obtenidas:" + docs.length })
+                done(err, docs)
+            }
         });
     }
 
@@ -161,7 +170,7 @@ class Expensas {
 
         this.db.servicios.find(servicio, function (err, docs) {
             if (docs.length > 0) {
-                done(docs[0])
+                done(err,docs[0])
             } else {
                 done()
             }
@@ -169,7 +178,7 @@ class Expensas {
     }
 
     eliminarServicio(idServicio, done) {
-        logger.info({ message: "Eliminando servicio :" + idServicio })
+        logger.debug({ message: "Eliminando servicio :" + idServicio })
         this.db.servicios.remove({ _id: idServicio }, {}, done)
     }
 
@@ -183,10 +192,12 @@ class Expensas {
 
         logger.info({ message: "Intentando agregar: " + JSON.stringify(servicio) })
         this.db.servicios.update(servicio, servicio, { upsert: true }, function (err, numReplaced, docs) {
-            if (docs) {
-                logger.info({ message: "Agregando servicio:" + JSON.stringify(docs) })
+            if (err) {
+                done(err)
+            } else {
+                logger.debug({ message: "Agregando servicio:" + JSON.stringify(docs) })
+                done(docs)
             }
-            done(docs)
         });
     }
 
@@ -195,95 +206,106 @@ class Expensas {
     /* PDF ops */
     /* =================================================================== */
 
-    obtenerDatosPDF(archivo, callback, extra) {
-        let pdfParser = new PDFParser();
 
-        let resultado = {
-            datos: {}
+}
+
+/**
+ * Resultados de parseo de un PDF
+ * 
+ */
+class ResultadoParserPDF {
+    constructor(archivo, extra) {
+        this.datos = []
+        this.archivo = archivo
+        this.extra = extra
+    }
+
+    completo() {
+        return (this.datos.tipo != null && this.datos.cliente != null && this.datos.importe != null)
+    }
+
+    esTipo(valor) {
+        return valor.match(/^PAGO DE/i) !== null ||
+            valor.match(/^abonado/i) !== null ||
+            valor.match(/^Descripción Pago/i) !== null
+    }
+
+    esCliente(valor) {
+        return (valor.match(/^NRO.[ ]?DE CLIENTE/i) !== null) ||
+            (valor.match(/^CUIT[ ]*CONTRIBUYENTE/i) !== null)
+    }
+
+    esImporte(valor) {
+        return valor.match(/^IMPORTE:/i) !== null ||
+            valor.match(/IMPORTE$/i) !== null
+    }
+
+    cargarTipo(valor) {
+        if (valor.match(/ - Comprobante$/)) {
+            valor = valor.replace(/ - Comprobante$/, "")
         }
-        let operaciones = {
-            completo: function (resultado) {
-                return (resultado.datos.tipo != null && resultado.datos.cliente != null && resultado.datos.importe != null)
-            },
 
-            esTipo: function (valor) {
-                return valor.match(/^PAGO DE/i) !== null ||
-                    valor.match(/^abonado/i) !== null ||
-                    valor.match(/^Descripción Pago/i) !== null
-            },
+        if (valor.match(/^PAGO DE/i) !== null) {
+            this.datos.tipo = valor.substr(8).trim()
+        }
 
-            esCliente: function (valor) {
-                return (valor.match(/^NRO.[ ]?DE CLIENTE/i) !== null) ||
-                    (valor.match(/^CUIT[ ]*CONTRIBUYENTE/i) !== null)
-            },
+        if (valor.match(/^abonado/i) !== null) {
+            this.datos.tipo = valor.substr(9).trim()
+        }
 
-            esImporte: function (valor) {
-                return valor.match(/^IMPORTE:/i) !== null ||
-                    valor.match(/IMPORTE$/i) !== null
-            },
+        if (valor.match(/^Descripción Pago/i) !== null) {
+            this.datos.tipo = valor.substr(17).trim()
+        }
+    }
 
-            cargarTipo: function (resultado, valor) {
-                if (valor.match(/ - Comprobante$/)) {
-                    valor = valor.replace(/ - Comprobante$/, "")
-                }
+    cargarImporte(valor) {
+        if (valor.match(/^IMPORTE:/i) !== null) {
+            this.datos.importe = parseFloat(valor.substr(valor.indexOf(':') + 3).replace(',', '.'))
+        }
 
-                if (valor.match(/^PAGO DE/i) !== null) {
-                    resultado.datos.tipo = valor.substr(8).trim()
-                }
+        if (valor.match(/IMPORTE$/i) !== null) {
+            this.datos.importe = parseFloat(valor.replace(/IMPORTE$/i, '').trim().replace(',', '.'))
+        }
+    }
 
-                if (valor.match(/^abonado/i) !== null) {
-                    resultado.datos.tipo = valor.substr(9).trim()
-                }
+    cargarCliente(valor) {
+        if ((valor.match(/^NRO.[ ]?DE CLIENTE/i) !== null) ||
+            (valor.match(/^CUIT[ ]*CONTRIBUYENTE/i) !== null)) {
 
-                if (valor.match(/^Descripción Pago/i) !== null) {
-                    resultado.datos.tipo = valor.substr(17).trim()
-                }
-            },
+            if (valor.indexOf(':') !== -1) {
+                this.datos.cliente = valor.substr(valor.indexOf(':') + 2)
+            } else {
+                this.datos.cliente = valor.substr(19)
+            }
+        }
+    }
+}
 
-            cargarImporte: function (resultado, valor) {
-                if (valor.match(/^IMPORTE:/i) !== null) {
-                    resultado.datos.importe = parseFloat(valor.substr(valor.indexOf(':') + 3).replace(',', '.'))
-                }
+class AnalizadorPDF {
+    constructor() {
+    }
 
-                if (valor.match(/IMPORTE$/i) !== null) {
-                    resultado.datos.importe = parseFloat(valor.replace(/IMPORTE$/i, '').trim().replace(',', '.'))
-                }
-            },
-
-            cargarCliente: function (resultado, valor) {
-                if ((valor.match(/^NRO.[ ]?DE CLIENTE/i) !== null) ||
-                    (valor.match(/^CUIT[ ]*CONTRIBUYENTE/i) !== null)) {
-
-                    if (valor.indexOf(':') !== -1) {
-                        resultado.datos.cliente = valor.substr(valor.indexOf(':') + 2)
-                    } else {
-                        resultado.datos.cliente = valor.substr(19)
-                    }
-                }
-            },
-        };
-
-        let ignore = false
-        resultado.archivo = archivo
-        resultado.extra = extra
+    obtenerDatosPDF(archivo, done, extra) {
+        let pdfParser = new PDFParser()
+        let resultado = new ResultadoParserPDF(archivo, extra)
 
         pdfParser.on("pdfParser_dataError", errData => console.error(errData.parserError))
 
         pdfParser.on("pdfParser_dataReady", pdfData => {
             // Son comprobantes siempre tienen una sola pagina
-            var textos = pdfData.formImage.Pages[0].Texts
+            let textos = pdfData.formImage.Pages[0].Texts
 
-            var beVerbose = process.env.EXPENSAS_MODO.match(/DEBUG/g) && process.env.EXPENSAS_MODO.match(/VERBOSE/g)
+            const beVerbose = process.env.VERBOSE
 
             if (beVerbose) {
-                logger.info({ message: "=DEBUG= Full pdf text parse" })
-                logger.info({ message: "=DEBUG=" + JSON.stringify(textos) })
+                logger.debug({ message: "=DEBUG= Full pdf text parse" })
+                logger.debug({ message: "=DEBUG=" + JSON.stringify(textos) })
             }
 
             // Agrupar como lineas textos con la misma coordenada "y"
-            var agrupados = {};
-            for (var i = 0; i < textos.length; i++) {
-                var coordenadaY = Math.floor(textos[i].y)
+            let agrupados = {}
+            for (let i = 0; i < textos.length; i++) {
+                let coordenadaY = Math.floor(textos[i].y)
                 if (agrupados[coordenadaY.toString()] === undefined) {
                     agrupados[coordenadaY.toString()] = { texto: "" }
                 }
@@ -291,57 +313,49 @@ class Expensas {
                 agrupados[coordenadaY.toString()].texto += decodeURIComponent(textos[i].R[0].T) + " "
             }
 
-            for (var key in agrupados) {
-                var texto = agrupados[key].texto.trim();
+            for (let key in agrupados) {
+                let texto = agrupados[key].texto.trim()
 
                 if (beVerbose) {
-                    logger.info({ message: "=DEBUG= Texto=" + texto });
-                    logger.info({ message: "=DEBUG= Linea Y=" + key });
-                    logger.info({ message: "=DEBUG= Es Tipo = " + operaciones.esTipo(texto) });
-                    logger.info({ message: "=DEBUG= Es Cliente = " + operaciones.esCliente(texto) });
-                    logger.info({ message: "=DEBUG= Es Importe = " + operaciones.esImporte(texto) });
-                    logger.info({ message: "=DEBUG= Resultado=" + JSON.stringify(resultado) });
+                    logger.debug({ message: "=DEBUG= Texto=" + texto })
+                    logger.debug({ message: "=DEBUG= Linea Y=" + key })
+                    logger.debug({ message: "=DEBUG= Es Tipo = " + resultado.esTipo(texto) })
+                    logger.debug({ message: "=DEBUG= Es Cliente = " + resultado.esCliente(texto) })
+                    logger.debug({ message: "=DEBUG= Es Importe = " + resultado.esImporte(texto) })
+                    logger.debug({ message: "=DEBUG= Resultado=" + JSON.stringify(resultado) })
                 }
 
-                if (operaciones.esTipo(texto)) {
-                    operaciones.cargarTipo(resultado, texto)
+                if (resultado.esTipo(texto)) {
+                    resultado.cargarTipo(texto)
                 }
 
-                if (operaciones.esCliente(texto)) {
+                if (resultado.esCliente(texto)) {
                     // CLIENTE
-                    operaciones.cargarCliente(resultado, texto)
+                    resultado.cargarCliente(texto)
                 }
 
-                if (operaciones.esImporte(texto)) {
+                if (resultado.esImporte(texto)) {
                     // IMPORTE
-                    operaciones.cargarImporte(resultado, texto)
+                    resultado.cargarImporte(texto)
                 }
 
-                if (operaciones.completo(resultado)) {
+                if (resultado.completo()) {
                     break;
                 }
             };
 
-            if (beVerbose) {
-                console.log("=DEBUG= Texto=" + texto)
-                console.log("=DEBUG= Linea Y=" + key)
-                console.log("=DEBUG= Es Tipo = " + operaciones.esTipo(texto))
-                console.log("=DEBUG= Es Cliente = " + operaciones.esCliente(texto))
-                console.log("=DEBUG= Es Importe = " + operaciones.esImporte(texto))
-                console.log("=DEBUG= Resultado=" + JSON.stringify(resultado))
+            if (!resultado.completo()) {
+                logger.debug({ message: "=ERROR= No se completo el resultado => " + JSON.stringify(resultado) })
             }
 
-
-            resultado.completo = operaciones.completo(resultado);
-            if (!resultado.completo) {
-                console.error("=ERROR= No se completo el resultado => " + JSON.stringify(resultado))
-            }
-
-            callback(resultado);
+            done(resultado);
         });
 
         pdfParser.loadPDF(archivo)
     }
 }
 
-exports.Expensas = Expensas;
+module.exports = {
+    AnalizadorPDF,
+    Expensas
+};

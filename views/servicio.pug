@@ -46,5 +46,5 @@ block content
 						td Ninguna
 					td
 						form(action='/eliminar_servicio' method='POST' onSubmit="return confirm('Eliminar servicio?')")
-							input(type='hidden' name='id' value= servicio.id)
+							input(type='hidden' name='id' value= servicio._id)
 							button(class="btn btn-default glyphicon glyphicon-minus" type="submit")

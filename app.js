@@ -1,5 +1,4 @@
 const logger = require("./logger")
-const fs = require('fs');
 const express = require('express');
 const path = require('path');
 const favicon = require('serve-favicon');
@@ -13,24 +12,16 @@ const routes = require('./routes/index');
 const app = express();
 
 // Expensas/Convertidor ref
-const Expensas = require('./expensas');
+const { Expensas, AnalizadorPDF } = require('./expensas');
 const Conversor = require('./conversor');
 
-if (process.env.EXPENSAS_MODO.match(/DEBUG/g)) {
-    logger.info({ message: "=WARNING= INICIANDO EL SERVIDOR EN MODO DEBUG!" });
-}
-
-if (process.env.EXPENSAS_MODO.match(/VERBOSE/g)) {
-    logger.info({ message: "=WARNING= INICIANDO EL SERVIDOR EN MODO VERBOSE!" });
-}
-
+app.locals.analizadorPDF = new AnalizadorPDF();
 app.locals.expensas = new Expensas("produccion");
-
 app.locals.convertidor = new Conversor(__dirname + "/files");
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.set('view engine', 'pug');
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + '/public/favicon.ico'));
@@ -47,9 +38,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(function (req, res, next) {
     res.locals.convertidor = app.locals.convertidor;
 
-    app.locals.expensas.getCuentas(function (cuentas) {
-        res.locals.cuentas = cuentas;
-        res.locals.expensas = app.locals.expensas;
+    app.locals.expensas.getCuentas(function (err, cuentas) {
+        if (err) {
+            logger.error({ message: err })
+        } else {
+            res.locals.cuentas = cuentas;
+            res.locals.expensas = app.locals.expensas;
+        }
         next();
     });
 });
