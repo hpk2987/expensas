@@ -4,8 +4,8 @@
  * Module dependencies.
  */
 require('dotenv').config()
-const logger = require('../logger')
-const app = require('../app')
+const logger = require('./logger')
+const app = require('./app')
 const http = require('http')
 
 const PORT = process.env.PORT || 3001

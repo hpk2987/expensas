@@ -36,7 +36,7 @@ class IteradorArchivos {
         const _me = this
         async.series(calls, function (err, result) {
             if (err) {
-                logger.error({ message: "=CONVERTIDOR= EXCEPCION -> " + err })
+	                logger.error({ message: "=CONVERTIDOR= EXCEPCION -> " + err.message })
             }
             done(result)
             if (_me.hayMas()) {
