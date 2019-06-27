@@ -8,11 +8,13 @@ const logger = require('./logger')
 const app = require('./app')
 const http = require('http')
 
-const PORT = process.env.PORT || 3001
+logger.debug({message: 'Debug Mode!'})
+
+const port = process.env.PORT || 3001
 /**
  * Get port from environment and store in Express.
  */
-app.set('port', PORT)
+app.set('port', port)
 
 /**
  * Create HTTP server.
@@ -24,7 +26,7 @@ var server = http.createServer(app)
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(PORT)
+server.listen(port)
 server.on('error', onError)
 server.on('listening', onListening)
 
@@ -37,7 +39,7 @@ function onError(error) {
         throw error;
     }
 
-    var bind = typeof port === 'string'
+    let bind = typeof port === 'string'
         ? 'Pipe ' + port
         : 'Port ' + port
 
@@ -61,8 +63,8 @@ function onError(error) {
  */
 
 function onListening() {
-    var addr = server.address();
-    var bind = typeof addr === 'string'
+    let addr = server.address();
+    let bind = typeof addr === 'string'
         ? 'pipe ' + addr
         : 'port ' + addr.port;
     logger.info({ message: 'Listening on ' + bind })

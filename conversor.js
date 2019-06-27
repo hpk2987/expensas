@@ -21,9 +21,9 @@ class IteradorArchivos {
     }
 
     forEach(itemCB, done, batchSize) {
-        var calls = [];
+        let calls = [];
         while (this.archivos.length > 0) {
-            var pdf = this.archivos.splice(0, 1)[0];
+            let pdf = this.archivos.shift();
             calls.push(function (done) {
                 itemCB(pdf, done)
             })
@@ -70,7 +70,7 @@ class Conversor {
      * @param {*} done Callback
      */
     convertir(pdfs, expensas, done) {
-        logger.debug({ message: '=CONVERTIDOR= INCIANDO...' });
+        logger.info({ message: '=CONVERTIDOR= INCIANDO...' });
 
         // No hay nada que convertir
         if (pdfs.length == 0) {
@@ -78,7 +78,7 @@ class Conversor {
         }
 
         // Iniciar el proceso de conversion transformano cada PDF a una imagen
-        logger.debug({ message: '=CONVERTIDOR= PASO 1 => PDFs a PNGs' });
+        logger.info({ message: '=CONVERTIDOR= PASO 1 => PDFs a PNGs' });
         this._convertirPDFsaPNGs(new IteradorArchivos(pdfs), expensas, done);
     }
 
@@ -91,7 +91,7 @@ class Conversor {
             // A4 en un PDF
             _me._dibujarImagenesEnCanvasHojaA4(new IteradorArchivos(imagenes), function (imagenesHoja) {
                 _me._combinarImagenesEnPDF(imagenesHoja, function (agrupado) {
-                    logger.debug({ message: '=CONVERTIDOR= FIN CONVERSION' })
+                    logger.info({ message: '=CONVERTIDOR= FIN CONVERSION' })
                     done(agrupado)
                 })
             })
