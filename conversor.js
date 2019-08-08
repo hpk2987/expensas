@@ -1,5 +1,7 @@
+const assert = require('assert');
+
 const logger = require("./logger")
-const { Expensas, AnalizadorPDF } = require("./expensas")
+const { AnalizadorPDF } = require("./expensas")
 const async = require('async');
 const path = require('path')
 const fs = require('fs')
@@ -13,33 +15,30 @@ const { createCanvas, Image } = require('canvas')
  */
 class IteradorArchivos {
     constructor(archivos) {
-        this.archivos = archivos
+        this.archivos = archivos        
     }
 
     hayMas() {
         return this.archivos.length > 0
     }
 
-    forEach(itemCB, done, batchSize) {
+    forEach(itemCB, done, batchSize, loopAllBatches) {
         let calls = [];
-        while (this.archivos.length > 0) {
+        while ( !(batchSize && (batchSize <= calls.length)) &&
+                    this.archivos.length > 0) {
             let pdf = this.archivos.shift();
             calls.push(function (done) {
                 itemCB(pdf, done)
             })
-
-            if (batchSize && (batchSize <= calls.length)) {
-                break;
-            }
         }
 
         const _me = this
         async.series(calls, function (err, result) {
             if (err) {
-	                logger.error({ message: "=CONVERTIDOR= EXCEPCION -> " + err.message })
+                logger.error({ message: "=CONVERTIDOR= EXCEPCION -> " + err.message })
             }
             done(result)
-            if (_me.hayMas()) {
+            if (_me.hayMas() && loopAllBatches) {
                 _me.forEach(itemCB, done, batchSize)
             }
         })
@@ -60,6 +59,7 @@ class IteradorArchivos {
 class Conversor {
     constructor(temporal) {
         this.temporal = temporal
+        this.offsets = JSON.parse(fs.readFileSync("./db/offsets.json"))
         this.analizadorPDF = new AnalizadorPDF();
     }
 
@@ -84,13 +84,13 @@ class Conversor {
 
     _convertirPDFsaPNGs(iteradorPDFs, expensas, done) {
         const _me = this;
-        iteradorPDFs.forEach(function (pdf, done) {
+        iteradorPDFs.forEach((pdf, done) => {
             _me._convertirPDFaPNG(pdf, expensas, done)
-        }, function (imagenes) {
+        }, (imagenes) => {
             // Finalmente combinar todas las imagenes con forma
             // A4 en un PDF
-            _me._dibujarImagenesEnCanvasHojaA4(new IteradorArchivos(imagenes), function (imagenesHoja) {
-                _me._combinarImagenesEnPDF(imagenesHoja, function (agrupado) {
+            _me._dibujarImagenesEnCanvasHojaA4(new IteradorArchivos(imagenes), function (hojasPNG) {
+                _me._combinarImagenesEnPDF(hojasPNG, function (agrupado) {
                     logger.info({ message: '=CONVERTIDOR= FIN CONVERSION' })
                     done(agrupado)
                 })
@@ -150,23 +150,25 @@ class Conversor {
 	 * @param {*} iteradorImagenes 
 	 */
     _dibujarImagenesEnCanvasHojaA4(iteradorImagenes, done, pngHojas) {
+        logger.debug({ message: "=CONVERTIDOR= Comenzando agrupamiento size=" + iteradorImagenes.archivos.length });
+
         if (!iteradorImagenes.hayMas()) {
+            logger.debug({ message: "=CONVERTIDOR= Se itero por todas las imagenes fin agrupamiento" });
             done(pngHojas)
             return
         }
 
         pngHojas = pngHojas ? pngHojas : []
-        logger.debug({ message: "=CONVERTIDOR= Creando pagina " + (pngHojas.length/4) })
-        
-        const _me = this        
+        logger.debug({ message: "=CONVERTIDOR= Creando pagina " + (pngHojas.length / 4) })
 
-        let indiceHoja = 0
+        const _me = this
+
         // El indiceHoja indica que elemento de la hoja es
         // Superior izquierdo 	== 0
         // Superior derecho 	== 1
         // Inferior izquierdo 	== 2
         // Inferior derecjo 	== 3
-        iteradorImagenes.forEach(function (imagen, done) {
+        iteradorImagenes.forEach((imagen, done) => {
             fs.readFile(imagen.archivo, function (err, data) {
                 if (err) {
                     done(err)
@@ -178,18 +180,18 @@ class Conversor {
                     done(null, imagen);
                 }
             });
-        }, function (imagenes) {
+        }, (imagenes) => {
             let canvas = createCanvas(2479, 3508);
             let ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            imagenes.forEach((imagen, indiceHoja) => {
-                _me._dibujarImagenEnCanvas(ctx, imagen, indiceHoja);
-            })
-            _me._almacenarCanvasEnPNG(canvas, indiceHoja, function (filename) {
+            imagenes.forEach(
+                (imagen, indiceHoja) => _me._dibujarImagenEnCanvas(ctx, imagen, indiceHoja))
+            _me._almacenarCanvasEnPNG(canvas, pngHojas.length, (filename) => {
+                logger.debug({ message: "=CONVERTIDOR= NUEVA HOJA"});
                 pngHojas.push(filename)
                 _me._dibujarImagenesEnCanvasHojaA4(iteradorImagenes, done, pngHojas)
             })
-        }, 4)
+        }, 4,false)
     }
 
     _almacenarCanvasEnPNG(canvas, indicePagina, done) {
@@ -208,7 +210,7 @@ class Conversor {
             });
     }
 
-	/**
+    /**
 	 * Dibuja una imagen dentro del canvas segun offsets
 	 * 
 	 * @param {*} canvas 
@@ -216,12 +218,10 @@ class Conversor {
 	 * @param {*} imagen 
 	 * @param {*} indice
 	 */
-    _dibujarImagenEnCanvas(ctx, imagen, indice) {
-        const offsets = JSON.parse(fs.readFileSync("./db/offsets.json"))
-
+    _dibujarImagenEnCanvas(ctx, imagen, indice) {        
         logger.debug({ message: "=DRAW= Dibujando imagen nombre => " + imagen.nombre + " en posicion => " + indice });
 
-        var offsetData = offsets.find(function (e) {
+        var offsetData = this.offsets.find(function (e) {
             return e.servicios.indexOf(imagen.nombre) !== -1;
         });
 
@@ -229,8 +229,8 @@ class Conversor {
             logger.debug({ message: "=BINDING= Utilizando offsets => " + offsetData.nombre + "  |  servicio => " + imagen.nombre });
             offsetData = offsetData.offsets;
         } else {
-            logger.debug({ message: "=NO BINDING= Utilizando offsets  => " + offsets[0].nombre + "  |  servicio => " + imagen.nombre });
-            offsetData = offsets[0].offsets;
+            logger.debug({ message: "=NO BINDING= Utilizando offsets  => " + this.offsets[0].nombre + "  |  servicio => " + imagen.nombre });
+            offsetData = this.offsets[0].offsets;
         }
 
         var off = offsetData[indice];
