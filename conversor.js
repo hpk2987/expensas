@@ -39,7 +39,7 @@ class IteradorArchivos {
             }
             done(result)
             if (_me.hayMas() && loopAllBatches) {
-                _me.forEach(itemCB, done, batchSize)
+                _me.forEach(itemCB, done, batchSize,loopAllBatches)
             }
         })
     }
